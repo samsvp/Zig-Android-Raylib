@@ -83,7 +83,7 @@ for ABI in $ABIS; do
 		#$CC -c $file -o "$file".o \
 		#	$INCLUDES -I$TOOLCHAIN/sysroot/usr/include/$CCTYPE $FLAGS $ABI_FLAGS
 	#done
-	zig build -Dtarget="$ZIGTYPE" -Doptimize=ReleaseSmall
+	zig build -Dandroid=true -Dtarget="$ZIGTYPE" -Doptimize=ReleaseSmall
 	mv zig-out/main.o src/
 
         # Link the project with toolchain specific linker to avoid relocations issue.
