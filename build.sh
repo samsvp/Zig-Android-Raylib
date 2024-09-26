@@ -8,7 +8,7 @@
 set -xe
 
 # NOTE: If you excluded any ABIs in the previous steps, remove them from this list too
-ABIS="arm64-v8a armeabi-v7a x86_64"
+ABIS="arm64-v8a armeabi-v7a x86 x86_64"
 
 BUILD_TOOLS=~/Android/build-tools/29.0.3
 TOOLCHAIN=~/Android/android-ndk-r27b/toolchains/llvm/prebuilt/linux-x86_64
@@ -53,6 +53,7 @@ for ABI in $ABIS; do
 			;;
 
 		"x86")
+			ZIGTYPE="x86-linux-android"
 			CCTYPE="i686-linux-android"
 			ARCH="i386"
 			LIBPATH="i686-linux-android"
@@ -83,7 +84,7 @@ for ABI in $ABIS; do
 		#	$INCLUDES -I$TOOLCHAIN/sysroot/usr/include/$CCTYPE $FLAGS $ABI_FLAGS
 	#done
 	zig build -Dtarget="$ZIGTYPE" -Doptimize=ReleaseSmall
-	mv zig-out/main.c.o src/
+	mv zig-out/main.o src/
 
         # Link the project with toolchain specific linker to avoid relocations issue.
 	$TOOLCHAIN/bin/ld.lld src/*.o -o android/build/lib/$ABI/libmain.so -shared \
@@ -133,6 +134,7 @@ mv -f game.final.apk game.apk
 
 apksigner sign  --ks android/raylib.keystore --out my-app-release.apk --ks-pass pass:raylib game.apk
 mv my-app-release.apk game.apk
+rm my-app-release.apk.idsig
 
 # Install to device or emulator
 adb install -r game.apk
