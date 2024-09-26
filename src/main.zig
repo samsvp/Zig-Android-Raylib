@@ -3,7 +3,7 @@ const Save = @import("save.zig");
 
 const std = @import("std");
 
-export fn main() void {
+pub export fn main() void {
     C.InitWindow(800, 450, "raylib [core] example - basic window");
     defer C.CloseWindow();
 
@@ -44,9 +44,6 @@ export fn main() void {
 
     C.SetTargetFPS(60);
     while (!C.WindowShouldClose()) {
-        C.BeginDrawing();
-        defer C.EndDrawing();
-
         // Update
         //----------------------------------------------------------------------------------
         if (C.IsKeyPressed(C.KEY_ENTER) or C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT)) {
