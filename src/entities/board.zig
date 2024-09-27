@@ -1,9 +1,9 @@
 const std = @import("std");
-const C = @import("c.zig").C;
+const C = @import("../c.zig").C;
 
-const Index = @import("components/index.zig").Index;
-const Position = @import("components/position.zig").Position;
-const Sprite = @import("components/sprite.zig").Sprite;
+const Index = @import("../components/index.zig").Index;
+const Position = @import("../components/position.zig").Position;
+const Sprite = @import("../components/sprite.zig").Sprite;
 
 pub const Tile = struct {
     index: Index,
@@ -83,11 +83,22 @@ pub const Board = struct {
         self.tiles.deinit();
     }
 
-    pub fn getTile(self: Board, pos: Index) ?*Tile {
-        if (pos.x >= self.columns or pos.y >= self.rows) {
+    pub fn getTile(self: Board, index: Index) ?*Tile {
+        if (index.x >= self.columns or index.y >= self.rows) {
             return null;
         }
 
-        return &self.tiles.items[pos.x * self.rows + pos.y];
+        return &self.tiles.items[index.x * self.rows + index.y];
+    }
+
+    pub fn posFromIndex(self: Board, index: Index) ?Position {
+        const tile = self.getTile(index) orelse return null;
+        return tile.pos;
+    }
+
+    pub fn resetTint(self: *Board) void {
+        for (&self.tiles.items) |*tile| {
+            tile.*.sprite.tint = C.WHITE;
+        }
     }
 };

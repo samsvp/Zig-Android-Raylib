@@ -1,17 +1,18 @@
 const std = @import("std");
-const Board = @import("board.zig");
+const Board = @import("entities/board.zig");
+const Index = @import("components/index.zig").Index;
 
 /// Returns the possible tiles that can be gone to
 /// at the given board and position.
 pub const MovementFunc = *const fn (
     Board.Board,
-    Board.Position,
+    Index,
     std.mem.Allocator,
 ) std.ArrayList(*Board.Tile);
 
 pub fn king(
     board: *Board.Board,
-    pos: Board.Position,
+    index: Index,
     allocator: std.mem.Allocator,
 ) std.ArrayList(*Board.Tile) {
     var tiles = std.ArrayList(*Board.Tile).initCapacity(
@@ -21,7 +22,7 @@ pub fn king(
 
     for (-1..2) |y| {
         for (-1..2) |x| {
-            const tile = board.getTile(.{ .x = pos.x + x, .y = pos.y + y }) orelse continue;
+            const tile = board.getTile(.{ .x = index.x + x, .y = index.y + y }) orelse continue;
             tiles.appendAssumeCapacity(tile);
         }
     }
@@ -31,21 +32,21 @@ pub fn king(
 
 pub fn pawn(
     board: Board.Board,
-    pos: Board.Position,
+    index: Index,
     allocator: std.mem.Allocator,
 ) std.ArrayList(*Board.Tile) {
     var tiles = std.ArrayList(*Board.Tile).initCapacity(
         allocator,
         1,
     ) catch unreachable;
-    const tile = board.getTile(.{ .x = pos.x, .y = pos.y - 1 }) orelse return tiles;
+    const tile = board.getTile(.{ .x = index.x, .y = index.y - 1 }) orelse return tiles;
     tiles.appendAssumeCapacity(tile);
     return tiles;
 }
 
 pub fn bishop(
     board: Board.Board,
-    pos: Board.Position,
+    index: Index,
     allocator: std.mem.Allocator,
 ) std.ArrayList(*Board.Tile) {
     var tiles = std.ArrayList(*Board.Tile).initCapacity(
@@ -54,17 +55,17 @@ pub fn bishop(
     ) catch unreachable;
 
     for (0..board.rows) |row| {
-        const dy = if (pos.y > row) pos.y - row else row - pos.y;
+        const dy = if (index.y > row) index.y - row else row - index.y;
         if (dy == 0) {
-            if (board.getTile(pos)) |tile| {
+            if (board.getTile(index)) |tile| {
                 tiles.append(tile) catch unreachable;
             }
             continue;
         }
-        if (dy <= pos.x) if (board.getTile(.{ .x = pos.x - dy, .y = row })) |tile| {
+        if (dy <= index.x) if (board.getTile(.{ .x = index.x - dy, .y = row })) |tile| {
             tiles.append(tile) catch unreachable;
         };
-        if (board.getTile(.{ .x = pos.x + dy, .y = row })) |tile| {
+        if (board.getTile(.{ .x = index.x + dy, .y = row })) |tile| {
             tiles.append(tile) catch unreachable;
         }
     }
@@ -73,7 +74,7 @@ pub fn bishop(
 
 pub fn tower(
     board: Board.Board,
-    pos: Board.Position,
+    index: Index,
     allocator: std.mem.Allocator,
 ) std.ArrayList(*Board.Tile) {
     var tiles = std.ArrayList(*Board.Tile).initCapacity(
@@ -82,16 +83,16 @@ pub fn tower(
     ) catch unreachable;
 
     for (0..board.columns) |x| {
-        const tile = board.getTile(.{ .x = x, .y = pos.y }) orelse continue;
+        const tile = board.getTile(.{ .x = x, .y = index.y }) orelse continue;
         tiles.append(tile) catch unreachable;
     }
 
     for (0..board.rows) |y| {
-        if (y == pos.y) {
+        if (y == index.y) {
             continue;
         }
 
-        const tile = board.getTile(.{ .x = pos.x, .y = y }) orelse continue;
+        const tile = board.getTile(.{ .x = index.x, .y = y }) orelse continue;
         tiles.append(tile) catch unreachable;
     }
 
@@ -100,7 +101,7 @@ pub fn tower(
 
 pub fn queen(
     board: Board.Board,
-    pos: Board.Position,
+    index: Index,
     allocator: std.mem.Allocator,
 ) std.ArrayList(*Board.Tile) {
     var tiles = std.ArrayList(*Board.Tile).initCapacity(
@@ -109,21 +110,21 @@ pub fn queen(
     ) catch unreachable;
 
     for (0..board.rows) |row| {
-        const dy = if (pos.y > row) pos.y - row else row - pos.y;
+        const dy = if (index.y > row) index.y - row else row - index.y;
         if (dy == 0) {
             for (0..board.columns) |x| {
-                const tile = board.getTile(.{ .x = x, .y = pos.y }) orelse continue;
+                const tile = board.getTile(.{ .x = x, .y = index.y }) orelse continue;
                 tiles.append(tile) catch unreachable;
             }
             continue;
         }
-        if (dy <= pos.x) if (board.getTile(.{ .x = pos.x - dy, .y = row })) |tile| {
+        if (dy <= index.x) if (board.getTile(.{ .x = index.x - dy, .y = row })) |tile| {
             tiles.append(tile) catch unreachable;
         };
-        if (board.getTile(.{ .x = pos.x + dy, .y = row })) |tile| {
+        if (board.getTile(.{ .x = index.x + dy, .y = row })) |tile| {
             tiles.append(tile) catch unreachable;
         }
-        if (board.getTile(.{ .x = pos.x, .y = row })) |tile| {
+        if (board.getTile(.{ .x = index.x, .y = row })) |tile| {
             tiles.append(tile) catch unreachable;
         }
     }
@@ -136,10 +137,10 @@ test "test" {
 
     const columns = 8;
     const rows = 6;
-    var board = try Board.Board.init(columns, rows, allocator);
+    var board = try Board.Board.init(columns, rows, .{ .x = 0, .y = 0 }, allocator);
     defer board.deinit();
 
-    const pos = Board.Position{ .x = 2, .y = 3 };
+    const pos = Index{ .x = 2, .y = 3 };
 
     {
         const btiles = bishop(board, pos, allocator);
@@ -151,7 +152,7 @@ test "test" {
             qtiles.deinit();
         }
         for (btiles.items) |t| {
-            std.debug.print("({}, {}), ", .{ t.pos.x, t.pos.y });
+            std.debug.print("({}, {}), ", .{ t.index.x, t.index.y });
         }
         std.debug.print("\n", .{});
         std.debug.print("lens: {}, {}, {}\n", .{ btiles.items.len, ttiles.items.len, qtiles.items.len });

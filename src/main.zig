@@ -1,6 +1,9 @@
-const Board = @import("entities/board.zig");
 const C = @import("c.zig").C;
 const Save = @import("save.zig");
+const Movement = @import("movement.zig");
+
+const Board = @import("entities/board.zig");
+const Enemy = @import("entities/enemy.zig").Enemy;
 
 const Position = @import("components/position.zig").Position;
 
@@ -39,6 +42,15 @@ pub export fn main() void {
     };
     defer board.deinit();
 
+    const tower_enemy = Enemy.init(
+        3,
+        board,
+        .{ .x = 0, .y = 0 },
+        .{ .x = 2, .y = 0 },
+        1.5,
+        Movement.tower,
+    );
+
     var score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     var hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
 
@@ -52,6 +64,12 @@ pub export fn main() void {
             _ = Save.SaveStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE), score);
             _ = Save.SaveStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE), hiscore);
         }
+        if (C.IsKeyPressed(C.KEY_P)) {
+            tower_enemy.previewMoves(&board);
+        }
+        if (C.IsKeyPressed(C.KEY_U)) {
+            tower_enemy.undoPreviewMoves(&board);
+        }
 
         C.BeginDrawing();
         defer C.EndDrawing();
@@ -61,5 +79,6 @@ pub export fn main() void {
         for (board.tiles.items) |tile| {
             render(sprite_sheet, tile.pos, tile.sprite);
         }
+        render(sprite_sheet, tower_enemy.position, tower_enemy.sprite);
     }
 }
