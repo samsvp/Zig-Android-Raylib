@@ -7,8 +7,9 @@ pub fn build(b: *std.Build) !void {
     const android = b.option(
         bool,
         "android",
-        "Name of the executable",
+        "If should compile for android",
     ) orelse false;
+
     if (android) {
         const obj = b.addObject(.{
             .name = "main",
