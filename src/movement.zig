@@ -1,21 +1,22 @@
 const std = @import("std");
-const Board = @import("entities/board.zig");
+const Board = @import("systems/board.zig").Board;
 const Index = @import("components/index.zig").Index;
+const Tile = @import("entities/tile.zig").Tile;
 
 /// Returns the possible tiles that can be gone to
 /// at the given board and position.
 pub const MovementFunc = *const fn (
-    Board.Board,
+    *Board,
     Index,
     std.mem.Allocator,
-) std.ArrayList(*Board.Tile);
+) std.ArrayList(*Tile);
 
 pub fn king(
-    board: *Board.Board,
+    board: *Board,
     index: Index,
     allocator: std.mem.Allocator,
-) std.ArrayList(*Board.Tile) {
-    var tiles = std.ArrayList(*Board.Tile).initCapacity(
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
         allocator,
         8,
     ) catch unreachable;
@@ -31,11 +32,11 @@ pub fn king(
 }
 
 pub fn pawn(
-    board: Board.Board,
+    board: *Board,
     index: Index,
     allocator: std.mem.Allocator,
-) std.ArrayList(*Board.Tile) {
-    var tiles = std.ArrayList(*Board.Tile).initCapacity(
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
         allocator,
         1,
     ) catch unreachable;
@@ -45,11 +46,11 @@ pub fn pawn(
 }
 
 pub fn bishop(
-    board: Board.Board,
+    board: *Board,
     index: Index,
     allocator: std.mem.Allocator,
-) std.ArrayList(*Board.Tile) {
-    var tiles = std.ArrayList(*Board.Tile).initCapacity(
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
         allocator,
         board.columns + board.rows,
     ) catch unreachable;
@@ -73,11 +74,11 @@ pub fn bishop(
 }
 
 pub fn tower(
-    board: Board.Board,
+    board: *Board,
     index: Index,
     allocator: std.mem.Allocator,
-) std.ArrayList(*Board.Tile) {
-    var tiles = std.ArrayList(*Board.Tile).initCapacity(
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
         allocator,
         board.columns + board.rows - 1,
     ) catch unreachable;
@@ -100,11 +101,11 @@ pub fn tower(
 }
 
 pub fn queen(
-    board: Board.Board,
+    board: *Board,
     index: Index,
     allocator: std.mem.Allocator,
-) std.ArrayList(*Board.Tile) {
-    var tiles = std.ArrayList(*Board.Tile).initCapacity(
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
         allocator,
         board.columns + 3 * (board.rows - 1),
     ) catch unreachable;
@@ -137,7 +138,7 @@ test "test" {
 
     const columns = 8;
     const rows = 6;
-    var board = try Board.Board.init(columns, rows, .{ .x = 0, .y = 0 }, allocator);
+    var board = try Board.init(columns, rows, .{ .x = 0, .y = 0 }, allocator);
     defer board.deinit();
 
     const pos = Index{ .x = 2, .y = 3 };

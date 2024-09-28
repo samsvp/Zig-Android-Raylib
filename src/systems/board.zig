@@ -3,53 +3,15 @@ const C = @import("../c.zig").C;
 
 const Index = @import("../components/index.zig").Index;
 const Position = @import("../components/position.zig").Position;
-const Sprite = @import("../components/sprite.zig").Sprite;
 
-pub const Tile = struct {
-    index: Index,
-    pos: Position,
-    sprite: Sprite,
-
-    pub fn init(index: Index, offset: Position, scale: f32) Tile {
-        const frame_rect = if ((index.x + index.y) % 2 == 0)
-            C.Rectangle{
-                .x = 64.0,
-                .y = 96.0,
-                .width = 32.0,
-                .height = 32.0,
-            }
-        else
-            C.Rectangle{
-                .x = 96.0,
-                .y = 96.0,
-                .width = 32.0,
-                .height = 32.0,
-            };
-
-        const p = Position{
-            .x = @floatFromInt(index.x),
-            .y = @floatFromInt(index.y),
-        };
-
-        return .{
-            .index = index,
-            .pos = .{
-                .x = p.x * 32.0 * scale + offset.x,
-                .y = p.y * 32.0 * scale + offset.y,
-            },
-            .sprite = .{
-                .scale = scale,
-                .frame_rect = frame_rect,
-                .tint = C.WHITE,
-            },
-        };
-    }
-};
+const Tile = @import("../entities/tile.zig").Tile;
+const Enemy = @import("../entities/enemy.zig").Enemy;
 
 pub const Board = struct {
     columns: usize,
     rows: usize,
     tiles: std.ArrayList(Tile),
+    enemies: std.ArrayList(*Enemy),
 
     allocator: std.mem.Allocator,
 
@@ -75,12 +37,40 @@ pub const Board = struct {
             .columns = columns,
             .rows = rows,
             .tiles = tiles,
+            .enemies = std.ArrayList(*Enemy).init(allocator),
             .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Board) void {
         self.tiles.deinit();
+        self.enemies.deinit();
+    }
+
+    pub fn addEnemy(self: *Board, enemy: *Enemy, index: Index) void {
+        enemy.index = index;
+        self.enemies.append(enemy) catch {};
+    }
+
+    fn paintMoves(
+        self: *Board,
+        enemy: Enemy,
+        tint: C.Color,
+    ) void {
+        var tiles = enemy.movementFunc(self, enemy.index, std.heap.c_allocator);
+        defer tiles.deinit();
+
+        for (tiles.items) |*tile| {
+            tile.*.sprite.tint = tint;
+        }
+    }
+
+    pub fn previewMoves(self: *Board, enemy: Enemy) void {
+        self.paintMoves(enemy, C.RED);
+    }
+
+    pub fn undoPreviewMoves(self: *Board, enemy: Enemy) void {
+        self.paintMoves(enemy, C.WHITE);
     }
 
     pub fn getTile(self: Board, index: Index) ?*Tile {
