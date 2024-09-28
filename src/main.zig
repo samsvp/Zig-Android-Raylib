@@ -42,14 +42,7 @@ pub export fn main() void {
         unreachable;
     };
     defer board.deinit();
-
-    var tower_enemy = Enemy.init(
-        3,
-        .{ .x = 2, .y = 0 },
-        1.5,
-        Movement.tower,
-    );
-    board.addEnemy(&tower_enemy, .{ .x = 0, .y = 0 });
+    board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
 
     var score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     var hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
@@ -65,10 +58,14 @@ pub export fn main() void {
             _ = Save.SaveStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE), hiscore);
         }
         if (C.IsKeyPressed(C.KEY_P)) {
-            board.previewMoves(tower_enemy);
+            for (board.enemies.items) |e| {
+                board.previewMoves(e.*);
+            }
         }
         if (C.IsKeyPressed(C.KEY_U)) {
-            board.undoPreviewMoves(tower_enemy);
+            for (board.enemies.items) |e| {
+                board.undoPreviewMoves(e.*);
+            }
         }
 
         C.BeginDrawing();

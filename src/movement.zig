@@ -45,6 +45,51 @@ pub fn pawn(
     return tiles;
 }
 
+pub fn knight(
+    board: *Board,
+    index: Index,
+    allocator: std.mem.Allocator,
+) std.ArrayList(*Tile) {
+    var tiles = std.ArrayList(*Tile).initCapacity(
+        allocator,
+        8,
+    ) catch unreachable;
+
+    const offsets = [_]Index{
+        .{ .x = 2, .y = 1 },
+        .{ .x = 1, .y = 2 },
+    };
+    for (offsets) |offset| {
+        if (offset.y < index.y) {
+            if (board.getTile(
+                .{ .x = index.x + offset.x, .y = index.y - offset.y },
+            )) |tile| {
+                tiles.appendAssumeCapacity(tile);
+            }
+        }
+        if (offset.x < index.x) {
+            if (board.getTile(
+                .{ .x = index.x - offset.x, .y = index.y + offset.y },
+            )) |tile| {
+                tiles.appendAssumeCapacity(tile);
+            }
+        }
+        if (offset.x < index.x and offset.y < index.y) {
+            if (board.getTile(
+                .{ .x = index.x - offset.x, .y = index.y - offset.y },
+            )) |tile| {
+                tiles.appendAssumeCapacity(tile);
+            }
+        }
+        if (board.getTile(
+            .{ .x = index.x + offset.x, .y = index.y + offset.y },
+        )) |tile| {
+            tiles.appendAssumeCapacity(tile);
+        }
+    }
+    return tiles;
+}
+
 pub fn bishop(
     board: *Board,
     index: Index,
