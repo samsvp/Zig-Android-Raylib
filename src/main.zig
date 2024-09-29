@@ -3,12 +3,12 @@ const Save = @import("save.zig");
 const Movement = @import("movement.zig");
 
 const Board = @import("systems/board.zig").Board;
+const Input = @import("systems/input.zig").Input;
+const render = @import("systems/render.zig").render;
 
 const Enemy = @import("entities/enemy.zig").Enemy;
 
 const Position = @import("components/position.zig").Position;
-
-const render = @import("systems/render.zig").render;
 
 const std = @import("std");
 
@@ -44,29 +44,23 @@ pub export fn main() void {
     defer board.deinit();
     board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
 
-    var score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
-    var hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
+    var tiles_attackers = board.calculateTilesAttackers(
+        std.heap.c_allocator,
+    ) catch {
+        exit("OOM");
+        unreachable;
+    };
+    defer tiles_attackers.deinit();
 
+    // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
+    // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
+
+    var input = Input{};
     C.SetTargetFPS(60);
     while (!C.WindowShouldClose()) {
         // Update
         //----------------------------------------------------------------------------------
-        if (C.IsKeyPressed(C.KEY_ENTER) or C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT)) {
-            score = C.GetRandomValue(1000, 2000);
-            hiscore = C.GetRandomValue(2000, 4000);
-            _ = Save.SaveStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE), score);
-            _ = Save.SaveStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE), hiscore);
-        }
-        if (C.IsKeyPressed(C.KEY_P)) {
-            for (board.enemies.items) |e| {
-                board.previewMoves(e.*);
-            }
-        }
-        if (C.IsKeyPressed(C.KEY_U)) {
-            for (board.enemies.items) |e| {
-                board.undoPreviewMoves(e.*);
-            }
-        }
+        input.listen(&board, tiles_attackers);
 
         C.BeginDrawing();
         defer C.EndDrawing();

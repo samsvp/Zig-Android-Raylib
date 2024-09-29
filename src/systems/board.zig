@@ -17,12 +17,38 @@ const EnemyKinds = enum {
     QUEEN,
 };
 
+pub const TileAttackers = struct {
+    arr: std.ArrayList(std.ArrayList(*Enemy)),
+
+    pub fn init(allocator: std.mem.Allocator, size: usize) !TileAttackers {
+        var tiles_attackers = try std.ArrayList(
+            std.ArrayList(*Enemy),
+        ).initCapacity(allocator, size);
+
+        for (0..size) |_| {
+            try tiles_attackers.append(
+                std.ArrayList(*Enemy).init(allocator),
+            );
+        }
+
+        return .{ .arr = tiles_attackers };
+    }
+
+    pub fn deinit(self: *TileAttackers) void {
+        for (self.arr.items) |ta| {
+            ta.deinit();
+        }
+        self.arr.deinit();
+    }
+};
+
 pub const Board = struct {
     columns: usize,
     rows: usize,
     tiles: std.ArrayList(Tile),
     enemies: std.ArrayList(*Enemy),
     player: Player,
+    scale: f32,
 
     allocator: std.mem.Allocator,
 
@@ -53,6 +79,7 @@ pub const Board = struct {
             .tiles = tiles,
             .enemies = std.ArrayList(*Enemy).init(allocator),
             .player = Player.init(5, player_index, scale),
+            .scale = scale,
             .allocator = allocator,
         };
     }
@@ -63,6 +90,28 @@ pub const Board = struct {
             std.heap.c_allocator.destroy(e);
         }
         self.enemies.deinit();
+    }
+
+    pub fn calculateTilesAttackers(
+        self: Board,
+        allocator: std.mem.Allocator,
+    ) !TileAttackers {
+        var tiles_attackers = try TileAttackers.init(
+            allocator,
+            self.columns * self.rows,
+        );
+
+        var s = self;
+        for (self.enemies.items) |e| {
+            var tiles = e.movementFunc(&s, e.index, std.heap.c_allocator);
+            defer tiles.deinit();
+            for (tiles.items) |tile| {
+                const i = tile.index.x * self.rows + tile.index.y;
+                try tiles_attackers.arr.items[i].append(e);
+            }
+        }
+
+        return tiles_attackers;
     }
 
     pub fn addEnemy(self: *Board, enemy: *Enemy, index: Index) !void {
@@ -168,9 +217,9 @@ pub const Board = struct {
         return tile.pos;
     }
 
-    pub fn resetTint(self: *Board) void {
-        for (&self.tiles.items) |*tile| {
-            tile.*.sprite.tint = C.WHITE;
+    pub fn resetPaint(board: *Board) void {
+        for (board.tiles.items) |*t| {
+            t.*.sprite.tint = C.WHITE;
         }
     }
 };
