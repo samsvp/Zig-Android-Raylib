@@ -1,8 +1,4 @@
-const std = @import("std");
-
 const C = @import("../c.zig").C;
-
-const Tile = @import("tile.zig").Tile;
 
 // components
 const Index = @import("../components/index.zig").Index;

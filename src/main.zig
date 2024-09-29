@@ -81,5 +81,8 @@ pub export fn main() void {
                 render(sprite_sheet, pos, e.sprite);
             }
         }
+        if (board.posFromIndex(board.player.index)) |pos| {
+            render(sprite_sheet, pos, board.player.sprite);
+        }
     }
 }

@@ -32,6 +32,7 @@ pub const Board = struct {
         pos: Position,
         allocator: std.mem.Allocator,
     ) !Board {
+        const scale = 1.5;
         var tiles = try std.ArrayList(Tile).initCapacity(
             allocator,
             columns * rows,
@@ -39,7 +40,7 @@ pub const Board = struct {
 
         for (0..columns) |x| {
             for (0..rows) |y| {
-                const tile = Tile.init(.{ .x = x, .y = y }, pos, 1.5);
+                const tile = Tile.init(.{ .x = x, .y = y }, pos, scale);
                 tiles.appendAssumeCapacity(tile);
             }
         }
@@ -51,7 +52,7 @@ pub const Board = struct {
             .rows = rows,
             .tiles = tiles,
             .enemies = std.ArrayList(*Enemy).init(allocator),
-            .player = Player.init(player_index),
+            .player = Player.init(5, player_index, scale),
             .allocator = allocator,
         };
     }
