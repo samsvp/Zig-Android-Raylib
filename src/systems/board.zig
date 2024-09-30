@@ -17,6 +17,11 @@ const EnemyKinds = enum {
     QUEEN,
 };
 
+pub const Character = union(enum) {
+    player: *Player,
+    enemy: *Enemy,
+};
+
 pub const TileAttackers = struct {
     arr: std.ArrayList(std.ArrayList(*Enemy)),
 
@@ -47,7 +52,7 @@ pub const Board = struct {
     rows: usize,
     tiles: std.ArrayList(Tile),
     enemies: std.ArrayList(*Enemy),
-    player: Player,
+    player: ?Player,
     scale: f32,
 
     allocator: std.mem.Allocator,
@@ -90,6 +95,64 @@ pub const Board = struct {
             std.heap.c_allocator.destroy(e);
         }
         self.enemies.deinit();
+    }
+
+    pub fn damageChar(character: Character) void {
+        switch (character) {
+            inline else => |char| {
+                char.*.health -= 1;
+            },
+        }
+    }
+
+    pub fn killChar(character: Character) void {
+        switch (character) {
+            inline else => |char| {
+                char.*.health = 0;
+            },
+        }
+    }
+
+    pub fn enemyMoveTo(
+        self: *Board,
+        enemy_i: usize,
+        target_index: Index,
+    ) void {
+        const enemy = &self.enemies.items[enemy_i];
+        const enemy_f_index = enemy.*.index.toVec2();
+        defer enemy.*.index = target_index;
+
+        const targeted_char = self.getCharacterAtIndex(target_index) orelse {
+            // tile is empty, just move
+            return;
+        };
+
+        // tile is not empty
+        const target_findex = target_index.toVec2();
+        const x_dir = std.math.sign(target_findex.x - enemy_f_index.x);
+        const y_dir = std.math.sign(target_findex.y - enemy_f_index.y);
+        const target_new_findex = C.Vector2{
+            .x = target_findex.x + x_dir,
+            .y = target_findex.y + y_dir,
+        };
+        if (target_new_findex.x < 0 or target_new_findex.y < 0 or
+            target_new_findex.x >= @as(f32, @floatFromInt(self.columns)) or
+            target_new_findex.y >= @as(f32, @floatFromInt(self.rows)))
+        { // sent player out of bounds, kill
+            if (self.player) |_| self.player = null;
+            return;
+        }
+        const target_new_index = Index.fromVec2(target_new_findex);
+        const char_behind_target = self.getCharacterAtIndex(target_new_index) orelse {
+            damageChar(targeted_char);
+            switch (targeted_char) {
+                inline else => |*char| char.*.index = target_new_index,
+            }
+            return;
+        };
+        killChar(targeted_char);
+        damageChar(char_behind_target);
+        return;
     }
 
     pub fn calculateTilesAttackers(
@@ -181,6 +244,46 @@ pub const Board = struct {
                 },
             }
         }
+    }
+
+    pub fn isTileAtIndexEmpty(self: Board, index: Index) bool {
+        for (self.enemies.items) |e| {
+            if (e.health <= 0) continue;
+
+            if (e.index.equals(index)) {
+                return false;
+            }
+        }
+
+        if (self.player) |player| {
+            return !player.index.equals(index);
+        }
+        return true;
+    }
+
+    pub fn isTileEmpty(self: Board, tile: Tile) bool {
+        const index = tile.index;
+        return self.isTileAtIndexEmpty(index);
+    }
+
+    pub fn getCharacterAtIndex(self: *Board, index: Index) ?Character {
+        for (self.enemies.items) |e| {
+            if (e.health <= 0) continue;
+
+            if (e.index.equals(index)) {
+                return Character{ .enemy = e };
+            }
+        }
+
+        if (self.player) |*player| if (player.*.index.equals(index)) {
+            return Character{ .player = player };
+        };
+        return null;
+    }
+
+    pub fn getCharacterInTile(self: Board, tile: Tile) ?Character {
+        const index = tile.index;
+        return self.getCharacterAtIndex(index);
     }
 
     fn paintMoves(

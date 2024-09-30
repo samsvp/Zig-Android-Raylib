@@ -2,6 +2,7 @@ const C = @import("c.zig").C;
 const Save = @import("save.zig");
 const Movement = @import("movement.zig");
 
+const AI = @import("systems/AI.zig").AI;
 const Board = @import("systems/board.zig").Board;
 const Input = @import("systems/input.zig").Input;
 const render = @import("systems/render.zig").render;
@@ -62,6 +63,47 @@ pub export fn main() void {
         //----------------------------------------------------------------------------------
         input.listen(&board, tiles_attackers);
 
+        if (C.IsKeyPressed(C.KEY_A)) {
+            AI.chooseMoves(&board, 0);
+            tiles_attackers.deinit();
+            tiles_attackers = board.calculateTilesAttackers(
+                std.heap.c_allocator,
+            ) catch {
+                exit("OOM");
+                unreachable;
+            };
+        }
+        if (C.IsKeyPressed(C.KEY_S)) {
+            AI.chooseMoves(&board, 1);
+            tiles_attackers.deinit();
+            tiles_attackers = board.calculateTilesAttackers(
+                std.heap.c_allocator,
+            ) catch {
+                exit("OOM");
+                unreachable;
+            };
+        }
+        if (C.IsKeyPressed(C.KEY_D)) {
+            AI.chooseMoves(&board, 2);
+            tiles_attackers.deinit();
+            tiles_attackers = board.calculateTilesAttackers(
+                std.heap.c_allocator,
+            ) catch {
+                exit("OOM");
+                unreachable;
+            };
+        }
+        if (C.IsKeyPressed(C.KEY_F)) {
+            AI.chooseMoves(&board, 3);
+            tiles_attackers.deinit();
+            tiles_attackers = board.calculateTilesAttackers(
+                std.heap.c_allocator,
+            ) catch {
+                exit("OOM");
+                unreachable;
+            };
+        }
+
         C.BeginDrawing();
         defer C.EndDrawing();
 
@@ -71,12 +113,17 @@ pub export fn main() void {
             render(sprite_sheet, tile.pos, tile.sprite);
         }
         for (board.enemies.items) |e| {
+            if (e.health <= 0) continue;
+
             if (board.posFromIndex(e.index)) |pos| {
                 render(sprite_sheet, pos, e.sprite);
             }
         }
-        if (board.posFromIndex(board.player.index)) |pos| {
-            render(sprite_sheet, pos, board.player.sprite);
+
+        if (board.player) |player| {
+            if (board.posFromIndex(player.index)) |pos| {
+                render(sprite_sheet, pos, player.sprite);
+            }
         }
     }
 }
