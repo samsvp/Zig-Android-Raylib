@@ -10,6 +10,12 @@ const Enemy = @import("../entities/enemy.zig").Enemy;
 const Player = @import("../entities/player.zig").Player;
 const Tile = @import("../entities/tile.zig").Tile;
 
+const MovementFunc = *const fn (
+    *Board,
+    Index,
+    std.mem.Allocator,
+) std.ArrayList(*Tile);
+
 const EnemyKinds = enum {
     TOWER,
     BISHOP,

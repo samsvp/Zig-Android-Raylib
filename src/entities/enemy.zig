@@ -1,3 +1,4 @@
+const std = @import("std");
 const C = @import("../c.zig").C;
 
 // components
@@ -6,7 +7,14 @@ const Health = @import("../components/health.zig").Health;
 const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
 
-const MovementFunc = @import("../movement.zig").MovementFunc;
+const Tile = @import("tile.zig").Tile;
+const Board = @import("../systems/board.zig").Board;
+
+const MovementFunc = *const fn (
+    *Board,
+    Index,
+    std.mem.Allocator,
+) std.ArrayList(*Tile);
 
 pub const Enemy = struct {
     health: Health,

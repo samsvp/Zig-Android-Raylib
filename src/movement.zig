@@ -5,14 +5,6 @@ const Board = @import("systems/board.zig").Board;
 const Index = @import("components/index.zig").Index;
 const Tile = @import("entities/tile.zig").Tile;
 
-/// Returns the possible tiles that can be gone to
-/// at the given board and position.
-pub const MovementFunc = *const fn (
-    *Board,
-    Index,
-    std.mem.Allocator,
-) std.ArrayList(*Tile);
-
 fn moveTowardsDir(
     board: *Board,
     tiles: *std.ArrayList(*Tile),
@@ -51,9 +43,12 @@ pub fn king(
         8,
     ) catch unreachable;
 
-    for (-1..2) |y| {
-        for (-1..2) |x| {
-            const tile = board.getTile(.{ .x = index.x + x, .y = index.y + y }) orelse continue;
+    for (0..3) |y| {
+        if (index.y == 0 and y == 0) continue;
+        for (0..3) |x| {
+            if (index.x == 0 and x == 0) continue;
+
+            const tile = board.getTile(.{ .x = index.x + x - 1, .y = index.y + y - 1 }) orelse continue;
             tiles.appendAssumeCapacity(tile);
         }
     }

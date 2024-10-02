@@ -1,4 +1,7 @@
+const std = @import("std");
+
 const C = @import("c.zig").C;
+const exit = @import("utils.zig").exit;
 const Save = @import("save.zig");
 const Movement = @import("movement.zig");
 
@@ -8,19 +11,9 @@ const Input = @import("systems/input.zig").Input;
 const render = @import("systems/render.zig").render;
 
 const Enemy = @import("entities/enemy.zig").Enemy;
+const Deck = @import("entities/deck.zig").Deck;
 
 const Position = @import("components/position.zig").Position;
-
-const std = @import("std");
-
-fn exit(msg: [*c]const u8) void {
-    C.TraceLog(
-        C.LOG_ERROR,
-        msg,
-    );
-
-    std.process.exit(1);
-}
 
 pub export fn main() void {
     C.InitWindow(800, 450, "raylib [core] example - basic window");
@@ -29,11 +22,14 @@ pub export fn main() void {
     // load all assets
     // save everything into assets
     _ = C.ChangeDirectory("assets");
+
     const sprite_sheet = C.LoadTexture("sprites.png");
     defer C.UnloadTexture(sprite_sheet);
     if (sprite_sheet.id <= 0) {
         exit("FILEIO: Could not load spritesheet");
     }
+    _ = Deck.init(0, 0, "base_deck.txt", std.heap.c_allocator);
+
     _ = C.ChangeDirectory("..");
     // end load assets
 
