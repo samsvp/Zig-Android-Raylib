@@ -1,26 +1,24 @@
 const std = @import("std");
-const C = @import("../c.zig").C;
 
-const Index = @import("../components/index.zig").Index;
+const C = @import("../c.zig").C;
 const Sprite = @import("../components/sprite.zig").Sprite;
 
-const Tile = @import("tile.zig").Tile;
-
-const Board = @import("../systems/board.zig").Board;
-
-const MovementFunc = *const fn (
-    *Board,
-    Index,
-    std.mem.Allocator,
-) std.ArrayList(*Tile);
+pub const CardKinds = enum {
+    tower,
+    queen,
+    king,
+    pawn,
+    bishop,
+    knight,
+};
 
 pub const Card = struct {
     sprite: Sprite,
-    movementFunc: MovementFunc,
+    card_kind: CardKinds,
 
     pub fn init(
         scale: f32,
-        movementFunc: MovementFunc,
+        card_kind: CardKinds,
     ) Card {
         const frame_rect = C.Rectangle{
             .x = 0,
@@ -31,7 +29,7 @@ pub const Card = struct {
 
         return .{
             .sprite = .{ .scale = scale, .frame_rect = frame_rect, .tint = C.WHITE },
-            .movementFunc = movementFunc,
+            .card_kind = card_kind,
         };
     }
 };

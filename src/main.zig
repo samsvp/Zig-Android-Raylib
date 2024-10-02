@@ -11,7 +11,7 @@ const Input = @import("systems/input.zig").Input;
 const render = @import("systems/render.zig").render;
 
 const Enemy = @import("entities/enemy.zig").Enemy;
-const Deck = @import("entities/deck.zig").Deck;
+const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
 
 const Position = @import("components/position.zig").Position;
 
@@ -28,10 +28,14 @@ pub export fn main() void {
     if (sprite_sheet.id <= 0) {
         exit("FILEIO: Could not load spritesheet");
     }
-    _ = Deck.init(0, 0, "base_deck.txt", std.heap.c_allocator);
+    var player_cards = PlayerCards.init(0, 0, "base_deck.txt", std.heap.c_allocator);
+    defer player_cards.deinit();
 
     _ = C.ChangeDirectory("..");
     // end load assets
+
+    player_cards.draw(3);
+    std.debug.print("hand len: {}\n", .{player_cards.hand.items.len});
 
     const board_pos = Position{ .x = 800.0 / 4.0, .y = 450.0 / 16.0 };
     var board = Board.init(8, 6, board_pos, std.heap.c_allocator) catch {
