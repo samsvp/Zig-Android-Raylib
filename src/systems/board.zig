@@ -102,19 +102,79 @@ pub const Board = struct {
         self.enemies.deinit();
     }
 
-    pub fn damageChar(character: Character) void {
+    pub fn damageChar(self: *Board, character: Character) void {
         switch (character) {
             inline else => |char| {
                 char.*.health -= 1;
+                if (char.health <= 0) {
+                    self.killChar(character);
+                }
             },
         }
     }
 
-    pub fn killChar(character: Character) void {
+    pub fn killChar(self: *Board, character: Character) void {
         switch (character) {
-            inline else => |char| {
-                char.*.health = 0;
+            .player => self.player = null,
+            .enemy => |enemy| {
+                enemy.*.health = 0;
+                // place it outside the board
+                enemy.*.index = .{ .x = self.columns, .y = self.rows };
             },
+        }
+    }
+
+    fn moveTo(
+        self: *Board,
+        char: Character,
+        target_index: Index,
+    ) void {
+        const current_index = switch (char) {
+            inline else => |*c| &c.*.index,
+        };
+        defer current_index.* = target_index;
+
+        const targeted_char = self.getCharacterAtIndex(target_index) orelse {
+            // tile is empty, just move
+            return;
+        };
+
+        const current_f_index = current_index.toVec2();
+
+        // tile is not empty
+        const target_findex = target_index.toVec2();
+        const x_dir = std.math.sign(target_findex.x - current_f_index.x);
+        const y_dir = std.math.sign(target_findex.y - current_f_index.y);
+        const target_new_findex = C.Vector2{
+            .x = target_findex.x + x_dir,
+            .y = target_findex.y + y_dir,
+        };
+        const target_char = &self.getCharacterAtIndex(target_index).?;
+        if (target_new_findex.x < 0 or target_new_findex.y < 0 or
+            target_new_findex.x >= @as(f32, @floatFromInt(self.columns)) or
+            target_new_findex.y >= @as(f32, @floatFromInt(self.rows)))
+        { // sent target out of bounds, kill
+            switch (target_char.*) {
+                .player => self.player = null,
+                .enemy => |*enemy| enemy.*.health = 0,
+            }
+            return;
+        }
+        const target_new_index = Index.fromVec2(target_new_findex);
+        const char_behind_target = self.getCharacterAtIndex(target_new_index) orelse {
+            self.damageChar(targeted_char);
+            switch (targeted_char) {
+                inline else => |*c| c.*.index = target_new_index,
+            }
+            return;
+        };
+        self.killChar(targeted_char);
+        self.damageChar(char_behind_target);
+    }
+
+    pub fn playerMoveTo(self: *Board, target_index: Index) void {
+        if (self.player) |*player| {
+            self.moveTo(.{ .player = player }, target_index);
         }
     }
 
@@ -123,41 +183,8 @@ pub const Board = struct {
         enemy_i: usize,
         target_index: Index,
     ) void {
-        const enemy = &self.enemies.items[enemy_i];
-        const enemy_f_index = enemy.*.index.toVec2();
-        defer enemy.*.index = target_index;
-
-        const targeted_char = self.getCharacterAtIndex(target_index) orelse {
-            // tile is empty, just move
-            return;
-        };
-
-        // tile is not empty
-        const target_findex = target_index.toVec2();
-        const x_dir = std.math.sign(target_findex.x - enemy_f_index.x);
-        const y_dir = std.math.sign(target_findex.y - enemy_f_index.y);
-        const target_new_findex = C.Vector2{
-            .x = target_findex.x + x_dir,
-            .y = target_findex.y + y_dir,
-        };
-        if (target_new_findex.x < 0 or target_new_findex.y < 0 or
-            target_new_findex.x >= @as(f32, @floatFromInt(self.columns)) or
-            target_new_findex.y >= @as(f32, @floatFromInt(self.rows)))
-        { // sent player out of bounds, kill
-            if (self.player) |_| self.player = null;
-            return;
-        }
-        const target_new_index = Index.fromVec2(target_new_findex);
-        const char_behind_target = self.getCharacterAtIndex(target_new_index) orelse {
-            damageChar(targeted_char);
-            switch (targeted_char) {
-                inline else => |*char| char.*.index = target_new_index,
-            }
-            return;
-        };
-        killChar(targeted_char);
-        damageChar(char_behind_target);
-        return;
+        const enemy = self.enemies.items[enemy_i];
+        self.moveTo(.{ .enemy = enemy }, target_index);
     }
 
     pub fn calculateTilesAttackers(
@@ -305,6 +332,8 @@ pub const Board = struct {
     }
 
     pub fn previewMoves(self: *Board, enemy: Enemy) void {
+        if (enemy.health <= 0) return;
+
         self.paintMoves(enemy, C.RED);
     }
 

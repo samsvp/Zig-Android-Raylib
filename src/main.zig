@@ -68,7 +68,6 @@ pub export fn main() void {
     while (!C.WindowShouldClose()) {
         // Update
         //----------------------------------------------------------------------------------
-        input.listen(&board, tiles_attackers);
 
         if (C.IsKeyPressed(C.KEY_A)) {
             AI.chooseMoves(&board, 0);
@@ -135,5 +134,7 @@ pub export fn main() void {
         for (player_cards.hand.items, 0..) |card, i| {
             render(cards_sprite_sheet, player_cards.getHandPosition(i), card.sprite);
         }
+
+        input.listen(&board, tiles_attackers, &player_cards);
     }
 }

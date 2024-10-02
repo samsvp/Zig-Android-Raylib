@@ -3,9 +3,10 @@ const C = @import("../c.zig").C;
 
 const Index = @import("../components/index.zig").Index;
 const Position = @import("../components/position.zig").Position;
-
+const PlayerCards = @import("player_deck.zig").PlayerCards;
 const Board = @import("board.zig").Board;
 const TileAttackers = @import("board.zig").TileAttackers;
+const Movement = @import("../movement.zig");
 
 pub const Input = struct {
     is_move_preview: bool = false,
@@ -17,7 +18,7 @@ pub const Input = struct {
             rect.y + rect.height >= point.y;
     }
 
-    fn checkCollision(
+    fn checkTACollision(
         board: *Board,
         tiles_attackers: TileAttackers,
         x: usize,
@@ -39,7 +40,7 @@ pub const Input = struct {
                 e.sprite.tint = C.RED;
             }
             var tile = board.getTile(index) orelse unreachable;
-            tile.sprite.tint = C.BLUE;
+            tile.sprite.tint = C.ColorTint(tile.sprite.tint, C.BLUE);
         }
     }
 
@@ -53,7 +54,7 @@ pub const Input = struct {
         };
         for (0..board.rows) |y| {
             for (0..board.columns) |x| {
-                checkCollision(board, tiles_attackers, x, y, mouse_pos);
+                checkTACollision(board, tiles_attackers, x, y, mouse_pos);
             }
         }
     }
@@ -62,6 +63,7 @@ pub const Input = struct {
         self: *Input,
         board: *Board,
         tiles_attackers: TileAttackers,
+        player_cards: *PlayerCards,
     ) void {
         board.resetPaint();
         for (board.enemies.items) |*e| {
@@ -83,5 +85,66 @@ pub const Input = struct {
         }
 
         mouseTileCollision(board, tiles_attackers);
+
+        const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
+        const mouse_pos = Position{
+            .x = @floatFromInt(C.GetMouseX()),
+            .y = @floatFromInt(C.GetMouseY()),
+        };
+        for (player_cards.hand.items, 0..) |*card, i| {
+            const pos = player_cards.getHandPosition(i);
+            const dest_rect = C.Rectangle{
+                .x = pos.x,
+                .y = pos.y,
+                .width = card.sprite.frame_rect.width * card.sprite.scale,
+                .height = card.sprite.frame_rect.height * card.sprite.scale,
+            };
+
+            const is_selected = i == player_cards.selected_card;
+            const tint = if (is_selected) C.BLUE else C.GREEN;
+            card.*.highlighted = player_cards.selected_card < 0 and
+                pointBoxCollision(mouse_pos, dest_rect);
+            if (card.highlighted or is_selected) if (board.player) |player| {
+                var p_tiles = Movement.getTiles(
+                    card.card_kind,
+                    board,
+                    player.index,
+                    std.heap.c_allocator,
+                );
+                defer p_tiles.deinit();
+
+                for (p_tiles.items) |*tile| {
+                    var c = tile.*.sprite.tint;
+                    tile.*.sprite.tint = C.ColorTint(c, tint);
+                    if (!is_selected) continue;
+
+                    const tile_pos = board.posFromIndex(tile.*.index) orelse unreachable;
+                    const rect = C.Rectangle{
+                        .x = tile_pos.x,
+                        .y = tile_pos.y,
+                        .width = 32.0 * board.scale,
+                        .height = 32.0 * board.scale,
+                    };
+
+                    if (pointBoxCollision(mouse_pos, rect)) {
+                        c = tile.*.sprite.tint;
+                        tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
+                        if (!l_mouse_pressed) continue;
+
+                        board.playerMoveTo(tile.*.index);
+                        player_cards.selected_card = -1;
+                    }
+                }
+            };
+
+            if (l_mouse_pressed and card.highlighted) {
+                player_cards.selected_card = @intCast(i);
+            }
+        }
+
+        const r_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_RIGHT);
+        if (r_mouse_pressed) {
+            player_cards.selected_card = -1;
+        }
     }
 };

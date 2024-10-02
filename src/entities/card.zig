@@ -2,23 +2,16 @@ const std = @import("std");
 
 const C = @import("../c.zig").C;
 const Sprite = @import("../components/sprite.zig").Sprite;
-
-pub const CardKinds = enum {
-    tower,
-    queen,
-    king,
-    pawn,
-    bishop,
-    knight,
-};
+const Movement = @import("../movement.zig");
 
 pub const Card = struct {
     sprite: Sprite,
-    card_kind: CardKinds,
+    card_kind: Movement.Kinds,
+    highlighted: bool = false,
 
     pub fn init(
         scale: f32,
-        card_kind: CardKinds,
+        card_kind: Movement.Kinds,
     ) Card {
         const pos = switch (card_kind) {
             .king => C.Vector2{ .x = 0, .y = 0 },

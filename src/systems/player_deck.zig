@@ -9,6 +9,7 @@ const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
 
 const Random = @import("random.zig").Random;
+
 extern fn free(ptr: ?*anyopaque) void;
 
 fn readDeck(
@@ -29,7 +30,7 @@ fn readDeck(
     while (it.next()) |line| {
         if (line.len == 0) continue;
 
-        const card_kind = std.meta.stringToEnum(Card.CardKinds, line) orelse {
+        const card_kind = std.meta.stringToEnum(Movement.Kinds, line) orelse {
             exit("Unknown card");
             unreachable;
         };
@@ -45,6 +46,7 @@ pub const PlayerCards = struct {
     hand: Card.Hand,
     deck: Card.Deck,
     grave: Card.Graveyard,
+    selected_card: i32 = -1,
 
     pub fn init(
         deck_scale: f32,
@@ -95,11 +97,18 @@ pub const PlayerCards = struct {
         const middle: f32 = @floatFromInt(self.hand.items.len / 2);
         const f_i: f32 = @floatFromInt(i);
         const w = self.sprite.frame_rect.width;
-        const offset = 2.5 * w * (f_i - middle);
+        const offset_x = 2.5 * w * (f_i - middle) - w / 2;
+
+        const card = self.hand.items[i];
+        var offset_y: f32 = -self.sprite.frame_rect.height;
+        offset_y += if (card.highlighted or i == self.selected_card)
+            -16.0
+        else
+            0;
 
         return .{
-            .x = 400.0 + offset,
-            .y = 400.0 - self.sprite.frame_rect.height,
+            .x = 400.0 + offset_x,
+            .y = 400.0 + offset_y,
         };
     }
 };

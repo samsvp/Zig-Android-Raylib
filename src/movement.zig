@@ -5,6 +5,32 @@ const Board = @import("systems/board.zig").Board;
 const Index = @import("components/index.zig").Index;
 const Tile = @import("entities/tile.zig").Tile;
 
+pub const Kinds = enum {
+    tower,
+    queen,
+    king,
+    pawn,
+    bishop,
+    knight,
+};
+
+pub fn getTiles(
+    kind: Kinds,
+    board: *Board,
+    index: Index,
+    allocator: std.mem.Allocator,
+) std.ArrayList(*Tile) {
+    const p_tiles = switch (kind) {
+        .bishop => bishop(board, index, allocator),
+        .king => king(board, index, allocator),
+        .knight => knight(board, index, allocator),
+        .pawn => pawn(board, index, allocator),
+        .queen => queen(board, index, allocator),
+        .tower => tower(board, index, allocator),
+    };
+    return p_tiles;
+}
+
 fn moveTowardsDir(
     board: *Board,
     tiles: *std.ArrayList(*Tile),

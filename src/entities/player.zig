@@ -8,6 +8,7 @@ pub const Player = struct {
     health: Health,
     index: Index,
     sprite: Sprite,
+    mana: i32,
 
     pub fn init(
         health: Health,
@@ -25,6 +26,7 @@ pub const Player = struct {
             .health = health,
             .index = index,
             .sprite = .{ .scale = scale, .frame_rect = frame_rect, .tint = C.WHITE },
+            .mana = 3,
         };
     }
 };
