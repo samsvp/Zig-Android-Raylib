@@ -14,6 +14,7 @@ const Enemy = @import("entities/enemy.zig").Enemy;
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
 
 const Position = @import("components/position.zig").Position;
+const Globals = @import("globals.zig").Globals;
 
 pub export fn main() void {
     C.InitWindow(800, 450, "raylib [core] example - basic window");
@@ -51,63 +52,34 @@ pub export fn main() void {
     };
     defer board.deinit();
     board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
+    var input = Input{};
 
-    var tiles_attackers = board.calculateTilesAttackers(
-        std.heap.c_allocator,
-    ) catch {
-        exit("OOM");
-        unreachable;
+    var globals = Globals{
+        .sprite_sheet = sprite_sheet,
+        .cards_sprite_sheet = cards_sprite_sheet,
+        .board = &board,
+        .player_cards = &player_cards,
+        .input = &input,
     };
-    defer tiles_attackers.deinit();
 
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
 
-    var input = Input{};
     C.SetTargetFPS(60);
     while (!C.WindowShouldClose()) {
         // Update
         //----------------------------------------------------------------------------------
-
         if (C.IsKeyPressed(C.KEY_A)) {
             AI.chooseMoves(&board, 0);
-            tiles_attackers.deinit();
-            tiles_attackers = board.calculateTilesAttackers(
-                std.heap.c_allocator,
-            ) catch {
-                exit("OOM");
-                unreachable;
-            };
         }
         if (C.IsKeyPressed(C.KEY_S)) {
             AI.chooseMoves(&board, 1);
-            tiles_attackers.deinit();
-            tiles_attackers = board.calculateTilesAttackers(
-                std.heap.c_allocator,
-            ) catch {
-                exit("OOM");
-                unreachable;
-            };
         }
         if (C.IsKeyPressed(C.KEY_D)) {
             AI.chooseMoves(&board, 2);
-            tiles_attackers.deinit();
-            tiles_attackers = board.calculateTilesAttackers(
-                std.heap.c_allocator,
-            ) catch {
-                exit("OOM");
-                unreachable;
-            };
         }
         if (C.IsKeyPressed(C.KEY_F)) {
             AI.chooseMoves(&board, 3);
-            tiles_attackers.deinit();
-            tiles_attackers = board.calculateTilesAttackers(
-                std.heap.c_allocator,
-            ) catch {
-                exit("OOM");
-                unreachable;
-            };
         }
 
         C.BeginDrawing();
@@ -135,6 +107,6 @@ pub export fn main() void {
             render(cards_sprite_sheet, player_cards.getHandPosition(i), card.sprite);
         }
 
-        input.listen(&board, tiles_attackers, &player_cards);
+        input.listen(&globals);
     }
 }

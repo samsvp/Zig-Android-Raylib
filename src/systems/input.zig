@@ -7,6 +7,7 @@ const PlayerCards = @import("player_deck.zig").PlayerCards;
 const Board = @import("board.zig").Board;
 const TileAttackers = @import("board.zig").TileAttackers;
 const Movement = @import("../movement.zig");
+const Globals = @import("../globals.zig").Globals;
 
 pub const Input = struct {
     is_move_preview: bool = false,
@@ -61,10 +62,11 @@ pub const Input = struct {
 
     pub fn listen(
         self: *Input,
-        board: *Board,
-        tiles_attackers: TileAttackers,
-        player_cards: *PlayerCards,
+        globals: *Globals,
     ) void {
+        var board = globals.board;
+        var player_cards = globals.player_cards;
+
         board.resetPaint();
         for (board.enemies.items) |*e| {
             e.*.sprite.tint = C.WHITE;
@@ -84,7 +86,11 @@ pub const Input = struct {
             }
         }
 
+        var tiles_attackers = board.calculateTilesAttackers(
+            std.heap.c_allocator,
+        ) catch unreachable;
         mouseTileCollision(board, tiles_attackers);
+        tiles_attackers.deinit();
 
         const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
         const mouse_pos = Position{
