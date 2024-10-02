@@ -5,7 +5,7 @@
 /// to 0. The process then repeats on each call.
 /// The time and space cost to generate a random number is O(N).
 const std = @import("std");
-const random = std.rand.DefaultPrng;
+const C = @import("../c.zig").C;
 
 /// Will panic if array is empty
 fn binarySearch(array: []f32, target: f32) usize {
@@ -41,7 +41,6 @@ fn binarySearch(array: []f32, target: f32) usize {
 }
 
 pub const Random = struct {
-    rand: std.Random.Xoshiro256,
     // cumulative weights
     weights: std.ArrayList(f32),
 
@@ -54,10 +53,11 @@ pub const Random = struct {
             return error.LengthTooShort;
         }
 
-        const rand = if (seed) |s|
-            random.init(s)
-        else
-            random.init(@intCast(std.time.timestamp()));
+        if (seed) |s| {
+            C.SetRandomSeed(s);
+        } else {
+            C.SetRandomSeed(@intCast(std.time.timestamp()));
+        }
 
         const f_length: f32 = @floatFromInt(length);
         const w = 1.0 / f_length;
@@ -68,7 +68,6 @@ pub const Random = struct {
         }
 
         return .{
-            .rand = rand,
             .weights = weights,
         };
     }
@@ -77,8 +76,30 @@ pub const Random = struct {
         self.weights.deinit();
     }
 
+    /// Returns a random float between [0, 1).
+    pub fn randomFloat() f32 {
+        const f: 32 = @floatFromInt(C.GetRandomValue(0, 999));
+        return f / 1000.0;
+    }
+
+    pub fn shuffle(comptime T: type, arr: []T) void {
+        var passes: usize = 0;
+        while (passes < 2 * arr.len) {
+            const i = passes % arr.len;
+            const new_i: usize = @intCast(C.GetRandomValue(
+                0,
+                @intCast(arr.len - 1),
+            ));
+
+            const tmp = arr[new_i];
+            arr[new_i] = arr[i];
+            arr[i] = tmp;
+            passes += 1;
+        }
+    }
+
     pub fn generate(self: *Random) usize {
-        const r = self.rand.random().float(f32);
+        const r = randomFloat();
         const index = binarySearch(self.weights.items, r);
         const f_length: f32 = @floatFromInt(self.weights.items.len - 1);
         var weights = self.weights.items;

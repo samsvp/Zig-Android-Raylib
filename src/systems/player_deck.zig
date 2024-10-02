@@ -5,13 +5,15 @@ const exit = @import("../utils.zig").exit;
 const Movement = @import("../movement.zig");
 
 const Card = @import("../entities/card.zig");
+const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
 
-const random = std.rand.DefaultPrng;
+const Random = @import("random.zig").Random;
+extern fn free(ptr: ?*anyopaque) void;
 
 fn readDeck(
     scale: f32,
-    deck_path: []const u8,
+    deck_path: [*c]const u8,
     allocator: std.mem.Allocator,
 ) std.ArrayList(Card.Card) {
     var cards = std.ArrayList(Card.Card).initCapacity(
@@ -19,17 +21,14 @@ fn readDeck(
         15,
     ) catch unreachable;
 
-    var file = std.fs.cwd().openFile(deck_path, .{}) catch {
-        exit("Error reading deck");
-        unreachable;
-    };
-    defer file.close();
+    const data = C.LoadFileText(deck_path);
+    defer free(data);
+    const data_slice: [:0]const u8 = std.mem.span(data);
 
-    var buf_reader = std.io.bufferedReader(file.reader());
-    var input_stream = buf_reader.reader();
+    var it = std.mem.split(u8, data_slice, "\n");
+    while (it.next()) |line| {
+        if (line.len == 0) continue;
 
-    var buffer: [1024]u8 = undefined;
-    while (input_stream.readUntilDelimiterOrEof(&buffer, '\n') catch unreachable) |line| {
         const card_kind = std.meta.stringToEnum(Card.CardKinds, line) orelse {
             exit("Unknown card");
             unreachable;
@@ -46,17 +45,15 @@ pub const PlayerCards = struct {
     hand: Card.Hand,
     deck: Card.Deck,
     grave: Card.Graveyard,
-    rand: std.Random.Xoshiro256,
 
     pub fn init(
         deck_scale: f32,
         card_scale: f32,
-        deck_path: []const u8,
+        deck_path: [*c]const u8,
         allocator: std.mem.Allocator,
     ) PlayerCards {
-        var rand = random.init(@intCast(std.time.timestamp()));
         const cards = readDeck(card_scale, deck_path, allocator);
-        rand.random().shuffle(Card.Card, cards.items);
+        Random.shuffle(Card.Card, cards.items);
 
         const frame_rect = C.Rectangle{
             .x = 0,
@@ -70,7 +67,6 @@ pub const PlayerCards = struct {
             .deck = cards,
             .hand = std.ArrayList(Card.Card).initCapacity(allocator, 3) catch unreachable,
             .grave = std.ArrayList(Card.Card).initCapacity(allocator, 15) catch unreachable,
-            .rand = rand,
         };
     }
 
@@ -82,7 +78,7 @@ pub const PlayerCards = struct {
 
     pub fn draw(self: *PlayerCards, n: usize) void {
         if (self.deck.items.len < n) {
-            self.rand.random().shuffle(Card.Card, self.grave.items);
+            Random.shuffle(Card.Card, self.grave.items);
             while (self.grave.items.len > 0) {
                 self.deck.append(self.grave.pop()) catch unreachable;
             }
@@ -93,5 +89,17 @@ pub const PlayerCards = struct {
             self.hand.append(self.deck.pop()) catch unreachable;
             draws += 1;
         }
+    }
+
+    pub fn getHandPosition(self: PlayerCards, i: usize) Position {
+        const middle: f32 = @floatFromInt(self.hand.items.len / 2);
+        const f_i: f32 = @floatFromInt(i);
+        const w = self.sprite.frame_rect.width;
+        const offset = 2.5 * w * (f_i - middle);
+
+        return .{
+            .x = 400.0 + offset,
+            .y = 400.0 - self.sprite.frame_rect.height,
+        };
     }
 };

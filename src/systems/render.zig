@@ -11,8 +11,8 @@ pub fn render(
     const dest_rect = C.Rectangle{
         .x = position.x,
         .y = position.y,
-        .width = 32.0 * sprite.scale,
-        .height = 32.0 * sprite.scale,
+        .width = sprite.frame_rect.width * sprite.scale,
+        .height = sprite.frame_rect.height * sprite.scale,
     };
 
     C.DrawTexturePro(

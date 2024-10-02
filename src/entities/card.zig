@@ -20,9 +20,17 @@ pub const Card = struct {
         scale: f32,
         card_kind: CardKinds,
     ) Card {
+        const pos = switch (card_kind) {
+            .king => C.Vector2{ .x = 0, .y = 0 },
+            .queen => C.Vector2{ .x = 48.0, .y = 0 },
+            .bishop => C.Vector2{ .x = 48.0 * 2.0, .y = 0 },
+            .tower => C.Vector2{ .x = 48.0 * 3.0, .y = 0 },
+            .knight => C.Vector2{ .x = 48 * 4, .y = 0 },
+            .pawn => C.Vector2{ .x = 48.0 * 5, .y = 0 },
+        };
         const frame_rect = C.Rectangle{
-            .x = 0,
-            .y = 0,
+            .x = pos.x,
+            .y = pos.y,
             .width = 48.0,
             .height = 64.0,
         };

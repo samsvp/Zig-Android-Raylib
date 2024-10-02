@@ -1,5 +1,5 @@
 const std = @import("std");
-const random = std.rand.DefaultPrng;
+const C = @import("../c.zig").C;
 
 const Board = @import("board.zig").Board;
 const Character = @import("board.zig").Character;
@@ -29,14 +29,18 @@ pub const AI = struct {
             }
         };
 
-        const seed: u64 = @intCast(std.time.timestamp());
-        var rand = random.init(seed);
+        const seed: c_uint = @intFromFloat(C.GetTime());
+        C.SetRandomSeed(seed);
 
+        const random_value: f32 = @floatFromInt(C.GetRandomValue(0, 1000));
         // change of just choosing randomly
-        if (rand.random().float(f32) >= 0.5) {
+        if (random_value / 1000.0 >= 0.5) {
             const max_tries = 32;
             for (0..max_tries) |_| {
-                const i = rand.random().uintLessThan(usize, tiles.items.len);
+                const i: usize = @intCast(C.GetRandomValue(
+                    0,
+                    @intCast(tiles.items.len - 1),
+                ));
                 const tile = tiles.items[i];
                 if (indexDist(tile.index, enemy.index) < 3) {
                     continue;

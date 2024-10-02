@@ -28,7 +28,14 @@ pub export fn main() void {
     if (sprite_sheet.id <= 0) {
         exit("FILEIO: Could not load spritesheet");
     }
-    var player_cards = PlayerCards.init(0, 0, "base_deck.txt", std.heap.c_allocator);
+
+    const cards_sprite_sheet = C.LoadTexture("card-sprites.png");
+    defer C.UnloadTexture(cards_sprite_sheet);
+    if (sprite_sheet.id <= 0) {
+        exit("FILEIO: Could not load cards spritesheet");
+    }
+
+    var player_cards = PlayerCards.init(0, 1.5, "base_deck.txt", std.heap.c_allocator);
     defer player_cards.deinit();
 
     _ = C.ChangeDirectory("..");
@@ -37,7 +44,7 @@ pub export fn main() void {
     player_cards.draw(3);
     std.debug.print("hand len: {}\n", .{player_cards.hand.items.len});
 
-    const board_pos = Position{ .x = 800.0 / 4.0, .y = 450.0 / 16.0 };
+    const board_pos = Position{ .x = 400.0 - 1.5 * 4.0 * 32.0, .y = 450.0 / 16.0 };
     var board = Board.init(8, 6, board_pos, std.heap.c_allocator) catch {
         exit("BOARD: could not create board, OOM");
         unreachable;
@@ -124,6 +131,9 @@ pub export fn main() void {
             if (board.posFromIndex(player.index)) |pos| {
                 render(sprite_sheet, pos, player.sprite);
             }
+        }
+        for (player_cards.hand.items, 0..) |card, i| {
+            render(cards_sprite_sheet, player_cards.getHandPosition(i), card.sprite);
         }
     }
 }

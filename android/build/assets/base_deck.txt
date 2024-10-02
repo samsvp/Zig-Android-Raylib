@@ -1,0 +1,15 @@
+knight
+knight
+knight
+bishop
+bishop
+bishop
+tower
+tower
+tower
+tower
+queen
+pawn
+pawn
+pawn
+pawn

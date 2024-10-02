@@ -1,5 +1,4 @@
 const std = @import("std");
-const random = std.rand.DefaultPrng;
 const C = @import("../c.zig").C;
 const Movement = @import("../movement.zig");
 
@@ -208,8 +207,8 @@ pub const Board = struct {
             }
         }
 
-        const seed: u64 = @intCast(std.time.timestamp());
-        var rand = random.init(seed);
+        const seed: c_uint = @intFromFloat(C.GetTime());
+        C.SetRandomSeed(seed);
         var current_queens: i32 = 0;
         for (0..amount) |_| {
             if (available_indexes.items.len == 0) {
@@ -221,13 +220,13 @@ pub const Board = struct {
             else
                 @intFromEnum(EnemyKinds.QUEEN) - 1;
 
-            const chosen_index = rand.random().uintLessThan(
-                usize,
-                available_indexes.items.len,
+            const chosen_index = C.GetRandomValue(
+                0,
+                @intCast(available_indexes.items.len - 1),
             );
-            const index = available_indexes.swapRemove(chosen_index);
+            const index = available_indexes.swapRemove(@intCast(chosen_index));
             const enemy_kind: EnemyKinds = @enumFromInt(
-                rand.random().uintAtMost(usize, max),
+                C.GetRandomValue(0, max),
             );
             const enemy = try std.heap.c_allocator.create(Enemy);
             switch (enemy_kind) {
