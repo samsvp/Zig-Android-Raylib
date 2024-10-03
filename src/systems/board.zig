@@ -8,6 +8,8 @@ const Position = @import("../components/position.zig").Position;
 const Enemy = @import("../entities/enemy.zig").Enemy;
 const Player = @import("../entities/player.zig").Player;
 const Tile = @import("../entities/tile.zig").Tile;
+const Coroutine = @import("coroutine.zig");
+const Input = @import("input.zig").Input;
 
 const MovementFunc = *const fn (
     *Board,
@@ -49,6 +51,68 @@ pub const TileAttackers = struct {
             ta.deinit();
         }
         self.arr.deinit();
+    }
+};
+
+const MoveCoroutine = struct {
+    target_index: Index,
+    target_position: Position,
+    char: Character,
+    cb_routine: ?Coroutine.Coroutine,
+    input: *Input,
+
+    pub fn init(
+        board: *Board,
+        target_index: Index,
+        char: Character,
+        cb_routine: ?Coroutine.Coroutine,
+        input: *Input,
+    ) MoveCoroutine {
+        switch (char) {
+            inline else => |c| {
+                c.*.position = board.posFromIndex(c.*.index).?;
+                c.*.index = .{ .x = board.columns, .y = board.rows };
+            },
+        }
+
+        const target_position = board.posFromIndex(target_index).?;
+        input.lock += 1;
+        return .{
+            .target_index = target_index,
+            .target_position = target_position,
+            .char = char,
+            .cb_routine = cb_routine,
+            .input = input,
+        };
+    }
+
+    pub fn move(self: *MoveCoroutine, dt: f32) bool {
+        switch (self.char) {
+            inline else => |c| {
+                const dx = self.target_position.x - c.*.position.x;
+                const dy = self.target_position.y - c.*.position.y;
+                const move_direction = .{
+                    .x = dx * dx / (dx * dx + dy * dy),
+                    .y = dy * dy / (dx * dx + dy * dy),
+                };
+                const speed = 1000.0;
+                c.*.position.x += std.math.sign(dx) * move_direction.x * dt * speed;
+                c.*.position.y += std.math.sign(dy) * move_direction.y * dt * speed;
+
+                const delta = @abs(dx) + @abs(dy);
+                if (delta < 10.0) {
+                    c.*.index = self.target_index;
+                    c.*.position = self.target_position;
+                    self.input.lock -= 1;
+                    if (self.cb_routine) |routine| {
+                        Coroutine.global_runner.add(routine);
+                    }
+                    std.heap.c_allocator.destroy(self);
+                    return true;
+                }
+                return false;
+            },
+        }
     }
 };
 
@@ -102,24 +166,13 @@ pub const Board = struct {
         self.enemies.deinit();
     }
 
-    pub fn damageChar(self: *Board, character: Character) void {
+    pub fn damageChar(character: Character) void {
         switch (character) {
             inline else => |char| {
                 char.*.health -= 1;
-                if (char.health <= 0) {
-                    self.killChar(character);
+                if (char.health < 0) {
+                    char.*.health = 0;
                 }
-            },
-        }
-    }
-
-    pub fn killChar(self: *Board, character: Character) void {
-        switch (character) {
-            .player => self.player = null,
-            .enemy => |enemy| {
-                enemy.*.health = 0;
-                // place it outside the board
-                enemy.*.index = .{ .x = self.columns, .y = self.rows };
             },
         }
     }
@@ -128,20 +181,35 @@ pub const Board = struct {
         self: *Board,
         char: Character,
         target_index: Index,
+        input: *Input,
     ) void {
         const current_index = switch (char) {
             inline else => |*c| &c.*.index,
         };
-        defer current_index.* = target_index;
+        var target_new_index = Index{ .x = 0, .y = 0 };
+        var target_char: ?Character = null;
+        var cb_routine: ?Coroutine.Coroutine = null;
+        defer {
+            const move_cr = std.heap.c_allocator.create(MoveCoroutine) catch unreachable;
+            move_cr.* = MoveCoroutine.init(
+                self,
+                target_index,
+                char,
+                cb_routine,
+                input,
+            );
+            const c = Coroutine.Coroutine.init(move_cr, MoveCoroutine.move);
+            Coroutine.global_runner.add(c);
+        }
 
         const targeted_char = self.getCharacterAtIndex(target_index) orelse {
             // tile is empty, just move
             return;
         };
 
+        // tile is not empty
         const current_f_index = current_index.toVec2();
 
-        // tile is not empty
         const target_findex = target_index.toVec2();
         const x_dir = std.math.sign(target_findex.x - current_f_index.x);
         const y_dir = std.math.sign(target_findex.y - current_f_index.y);
@@ -149,32 +217,48 @@ pub const Board = struct {
             .x = target_findex.x + x_dir,
             .y = target_findex.y + y_dir,
         };
-        const target_char = &self.getCharacterAtIndex(target_index).?;
+
+        target_char = self.getCharacterAtIndex(target_index).?;
         if (target_new_findex.x < 0 or target_new_findex.y < 0 or
             target_new_findex.x >= @as(f32, @floatFromInt(self.columns)) or
             target_new_findex.y >= @as(f32, @floatFromInt(self.rows)))
         { // sent target out of bounds, kill
-            switch (target_char.*) {
+            switch (target_char.?) {
                 .player => self.player = null,
                 .enemy => |*enemy| enemy.*.health = 0,
             }
             return;
         }
-        const target_new_index = Index.fromVec2(target_new_findex);
+
+        target_new_index = Index.fromVec2(target_new_findex);
         const char_behind_target = self.getCharacterAtIndex(target_new_index) orelse {
-            self.damageChar(targeted_char);
-            switch (targeted_char) {
-                inline else => |*c| c.*.index = target_new_index,
-            }
+            damageChar(targeted_char);
+            const move_routine = std.heap.c_allocator.create(
+                MoveCoroutine,
+            ) catch unreachable;
+            move_routine.* = MoveCoroutine.init(
+                self,
+                target_new_index,
+                targeted_char,
+                null,
+                input,
+            );
+            cb_routine = Coroutine.Coroutine.init(move_routine, MoveCoroutine.move);
             return;
         };
-        self.killChar(targeted_char);
-        self.damageChar(char_behind_target);
+        switch (targeted_char) {
+            inline else => |*c| c.*.health = 0,
+        }
+        damageChar(char_behind_target);
     }
 
-    pub fn playerMoveTo(self: *Board, target_index: Index) void {
+    pub fn playerMoveTo(
+        self: *Board,
+        target_index: Index,
+        input: *Input,
+    ) void {
         if (self.player) |*player| {
-            self.moveTo(.{ .player = player }, target_index);
+            self.moveTo(.{ .player = player }, target_index, input);
         }
     }
 
@@ -182,9 +266,10 @@ pub const Board = struct {
         self: *Board,
         enemy_i: usize,
         target_index: Index,
+        input: *Input,
     ) void {
         const enemy = self.enemies.items[enemy_i];
-        self.moveTo(.{ .enemy = enemy }, target_index);
+        self.moveTo(.{ .enemy = enemy }, target_index, input);
     }
 
     pub fn calculateTilesAttackers(

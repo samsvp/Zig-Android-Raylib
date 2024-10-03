@@ -91,6 +91,8 @@ pub fn pawn(
         allocator,
         1,
     ) catch unreachable;
+    if (index.y == 0) return tiles;
+
     const tile = board.getTile(.{ .x = index.x, .y = index.y - 1 }) orelse return tiles;
     tiles.appendAssumeCapacity(tile);
     return tiles;

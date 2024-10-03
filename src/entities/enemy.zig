@@ -19,6 +19,7 @@ const MovementFunc = *const fn (
 pub const Enemy = struct {
     health: Health,
     index: Index,
+    position: Position,
     movementFunc: MovementFunc,
     sprite: Sprite,
 
@@ -42,6 +43,7 @@ pub const Enemy = struct {
         return .{
             .health = health,
             .index = .{ .x = 0, .y = 0 },
+            .position = .{ .x = 0, .y = 0 },
             .movementFunc = movementFunc,
             .sprite = .{ .scale = scale, .frame_rect = frame_rect, .tint = C.WHITE },
         };

@@ -9,6 +9,7 @@ const AI = @import("systems/AI.zig").AI;
 const Board = @import("systems/board.zig").Board;
 const Input = @import("systems/input.zig").Input;
 const render = @import("systems/render.zig").render;
+const Coroutine = @import("systems/coroutine.zig");
 
 const Enemy = @import("entities/enemy.zig").Enemy;
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
@@ -54,12 +55,16 @@ pub export fn main() void {
     board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
     var input = Input{};
 
+    Coroutine.global_runner = Coroutine.CoroutineRunner.init(std.heap.c_allocator);
+    defer Coroutine.global_runner.deinit();
+
     var globals = Globals{
         .sprite_sheet = sprite_sheet,
         .cards_sprite_sheet = cards_sprite_sheet,
         .board = &board,
         .player_cards = &player_cards,
         .input = &input,
+        .coroutine_runner = &Coroutine.global_runner,
     };
 
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
@@ -70,16 +75,7 @@ pub export fn main() void {
         // Update
         //----------------------------------------------------------------------------------
         if (C.IsKeyPressed(C.KEY_A)) {
-            AI.chooseMoves(&board, 0);
-        }
-        if (C.IsKeyPressed(C.KEY_S)) {
-            AI.chooseMoves(&board, 1);
-        }
-        if (C.IsKeyPressed(C.KEY_D)) {
-            AI.chooseMoves(&board, 2);
-        }
-        if (C.IsKeyPressed(C.KEY_F)) {
-            AI.chooseMoves(&board, 3);
+            AI.chooseMoves(&board, 0, &input);
         }
 
         C.BeginDrawing();
@@ -93,20 +89,21 @@ pub export fn main() void {
         for (board.enemies.items) |e| {
             if (e.health <= 0) continue;
 
-            if (board.posFromIndex(e.index)) |pos| {
-                render(sprite_sheet, pos, e.sprite);
-            }
+            const pos = board.posFromIndex(e.index) orelse e.position;
+            render(sprite_sheet, pos, e.sprite);
         }
 
         if (board.player) |player| {
-            if (board.posFromIndex(player.index)) |pos| {
-                render(sprite_sheet, pos, player.sprite);
-            }
+            const pos = board.posFromIndex(player.index) orelse player.position;
+            render(sprite_sheet, pos, player.sprite);
         }
         for (player_cards.hand.items, 0..) |card, i| {
             render(cards_sprite_sheet, player_cards.getHandPosition(i), card.sprite);
         }
 
         input.listen(&globals);
+
+        const dt = C.GetFrameTime();
+        Coroutine.global_runner.update(dt);
     }
 }

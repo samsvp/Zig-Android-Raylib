@@ -3,6 +3,7 @@ const C = @import("c.zig").C;
 const Board = @import("systems/board.zig").Board;
 const Input = @import("systems/input.zig").Input;
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
+const CoroutineRunner = @import("systems/coroutine.zig").CoroutineRunner;
 
 pub const Globals = struct {
     sprite_sheet: C.Texture2D,
@@ -11,4 +12,5 @@ pub const Globals = struct {
     player_cards: *PlayerCards,
     board: *Board,
     input: *Input,
+    coroutine_runner: *CoroutineRunner,
 };

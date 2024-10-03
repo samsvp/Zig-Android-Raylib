@@ -8,9 +8,11 @@ const Board = @import("board.zig").Board;
 const TileAttackers = @import("board.zig").TileAttackers;
 const Movement = @import("../movement.zig");
 const Globals = @import("../globals.zig").Globals;
+const exit = @import("../utils.zig").exit;
 
 pub const Input = struct {
     is_move_preview: bool = false,
+    lock: i32 = 0,
 
     fn pointBoxCollision(point: Position, rect: C.Rectangle) bool {
         return rect.x <= point.x and
@@ -70,6 +72,13 @@ pub const Input = struct {
         board.resetPaint();
         for (board.enemies.items) |*e| {
             e.*.sprite.tint = C.WHITE;
+        }
+
+        if (self.lock > 0) {
+            return;
+        }
+        if (self.lock < 0) {
+            exit("Double release on lock");
         }
 
         if (C.IsKeyPressed(C.KEY_P)) {
@@ -137,7 +146,7 @@ pub const Input = struct {
                         tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
                         if (!l_mouse_pressed) continue;
 
-                        board.playerMoveTo(tile.*.index);
+                        board.playerMoveTo(tile.*.index, self);
                         player_cards.selected_card = -1;
                     }
                 }
