@@ -4,6 +4,7 @@ const C = @import("../c.zig").C;
 const Board = @import("board.zig").Board;
 const Character = @import("board.zig").Character;
 const Input = @import("input.zig").Input;
+const Globals = @import("../globals.zig").Globals;
 
 const Index = @import("../components/index.zig").Index;
 
@@ -15,10 +16,11 @@ fn indexDist(idx1: Index, idx2: Index) usize {
 
 pub const AI = struct {
     pub fn chooseMoves(
-        board: *Board,
         enemy_i: usize,
-        input: *Input,
+        globals: *Globals,
     ) void {
+        var board = globals.board;
+
         if (board.enemies.items.len <= enemy_i) {
             return;
         }
@@ -29,7 +31,7 @@ pub const AI = struct {
 
         if (board.player) |player| for (tiles.items) |tile| {
             if (tile.index.equals(player.index)) {
-                board.enemyMoveTo(enemy_i, tile.index, input);
+                board.enemyMoveTo(enemy_i, tile.index, globals);
                 return;
             }
         };
@@ -52,7 +54,7 @@ pub const AI = struct {
                 }
 
                 if (board.isTileEmpty(tile.*)) {
-                    board.enemyMoveTo(enemy_i, tiles.items[i].index, input);
+                    board.enemyMoveTo(enemy_i, tiles.items[i].index, globals);
                     return;
                 }
             }
@@ -80,6 +82,6 @@ pub const AI = struct {
                 biggest_len = new_tiles.items.len;
             }
         }
-        board.enemyMoveTo(enemy_i, chosen_index, input);
+        board.enemyMoveTo(enemy_i, chosen_index, globals);
     }
 };

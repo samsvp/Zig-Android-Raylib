@@ -77,9 +77,14 @@ pub const Random = struct {
     }
 
     /// Returns a random float between [0, 1).
-    pub fn randomFloat() f32 {
-        const f: 32 = @floatFromInt(C.GetRandomValue(0, 999));
+    pub fn float() f32 {
+        const f: f32 = @floatFromInt(C.GetRandomValue(0, 999));
         return f / 1000.0;
+    }
+
+    pub fn floatInRange(min: f32, max: f32) f32 {
+        const f: f32 = @floatFromInt(C.GetRandomValue(0, 999));
+        return (max - min) * f / 1000.0 + min;
     }
 
     pub fn shuffle(comptime T: type, arr: []T) void {
@@ -99,7 +104,7 @@ pub const Random = struct {
     }
 
     pub fn generate(self: *Random) usize {
-        const r = randomFloat();
+        const r = float();
         const index = binarySearch(self.weights.items, r);
         const f_length: f32 = @floatFromInt(self.weights.items.len - 1);
         var weights = self.weights.items;

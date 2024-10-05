@@ -7,8 +7,8 @@ bishop
 tower
 tower
 tower
-tower
 queen
+pawn
 pawn
 pawn
 pawn

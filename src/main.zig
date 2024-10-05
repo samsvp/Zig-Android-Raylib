@@ -75,7 +75,7 @@ pub export fn main() void {
         // Update
         //----------------------------------------------------------------------------------
         if (C.IsKeyPressed(C.KEY_A)) {
-            AI.chooseMoves(&board, 0, &input);
+            AI.chooseMoves(0, &globals);
         }
 
         C.BeginDrawing();
@@ -86,6 +86,10 @@ pub export fn main() void {
         for (board.tiles.items) |tile| {
             render(sprite_sheet, tile.pos, tile.sprite);
         }
+
+        const dt = C.GetFrameTime();
+        Coroutine.global_runner.update(dt);
+
         for (board.enemies.items) |e| {
             if (e.health <= 0) continue;
 
@@ -102,8 +106,5 @@ pub export fn main() void {
         }
 
         input.listen(&globals);
-
-        const dt = C.GetFrameTime();
-        Coroutine.global_runner.update(dt);
     }
 }

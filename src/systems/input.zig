@@ -146,7 +146,7 @@ pub const Input = struct {
                         tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
                         if (!l_mouse_pressed) continue;
 
-                        board.playerMoveTo(tile.*.index, self);
+                        board.playerMoveTo(tile.*.index, globals);
                         player_cards.selected_card = -1;
                     }
                 }
