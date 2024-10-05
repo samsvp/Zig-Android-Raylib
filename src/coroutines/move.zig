@@ -38,7 +38,7 @@ pub const MoveCoroutine = struct {
         };
     }
 
-    pub fn move(self: *MoveCoroutine, dt: f32) bool {
+    pub fn coroutine(self: *MoveCoroutine, dt: f32) bool {
         switch (self.char) {
             inline else => |c| {
                 const dx = self.target_position.x - c.*.position.x;

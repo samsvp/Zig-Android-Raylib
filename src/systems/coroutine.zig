@@ -46,6 +46,12 @@ pub const Coroutine = struct {
     pub fn coroutine(self: Coroutine, dt: f32) bool {
         return self.coroutineFunc(self.context, dt);
     }
+
+    pub fn make(comptime T: type, args: anytype) Coroutine {
+        const cr = std.heap.c_allocator.create(T) catch unreachable;
+        cr.* = @call(.auto, T.init, args);
+        return @call(.auto, Coroutine.init, .{ cr, T.coroutine });
+    }
 };
 
 pub const CoroutineRunner = struct {

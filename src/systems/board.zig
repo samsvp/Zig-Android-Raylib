@@ -107,24 +107,6 @@ pub const Board = struct {
         self.enemies.deinit();
     }
 
-    fn makeDmgRoutine(
-        self: *Board,
-        texture: C.Texture,
-        index: Index,
-        char: Character,
-        damage: i32,
-    ) Cor.Coroutine {
-        const damage_cr = std.heap.c_allocator.create(DamageCoroutine) catch unreachable;
-        damage_cr.* = DamageCoroutine.init(
-            texture,
-            self,
-            index,
-            char,
-            damage,
-        );
-        return Cor.Coroutine.init(damage_cr, DamageCoroutine.coroutine);
-    }
-
     fn moveTo(
         self: *Board,
         char: Character,
@@ -142,16 +124,11 @@ pub const Board = struct {
             std.heap.c_allocator,
         );
         defer {
-            const move_cr = std.heap.c_allocator.create(MoveCoroutine) catch unreachable;
-            move_cr.* = MoveCoroutine.init(
-                self,
-                target_i,
-                char,
-                cb_routines,
-                input,
+            const move_cr = Cor.Coroutine.make(
+                MoveCoroutine,
+                .{ self, target_i, char, cb_routines, input },
             );
-            const c = Cor.Coroutine.init(move_cr, MoveCoroutine.move);
-            Cor.global_runner.add(c);
+            Cor.global_runner.add(move_cr);
         }
 
         const targeted_char = self.getCharacterAtIndex(target_i) orelse {
@@ -175,7 +152,10 @@ pub const Board = struct {
             target_new_findex.x >= @as(f32, @floatFromInt(self.columns)) or
             target_new_findex.y >= @as(f32, @floatFromInt(self.rows)))
         { // sent target out of bounds, kill
-            const dmg_cr = self.makeDmgRoutine(texture, target_i, target_char.?, 100);
+            const dmg_cr = Cor.Coroutine.make(
+                DamageCoroutine,
+                .{ texture, self, target_i, target_char.?, 100 },
+            );
             cb_routines.append(dmg_cr) catch unreachable;
             return;
         }
@@ -186,23 +166,24 @@ pub const Board = struct {
         var targeted_char_dmg: i32 = 1;
         if (maybe_char_behind_target) |char_behind| {
             targeted_char_dmg = 100;
-            const dmg_cr = self.makeDmgRoutine(texture, target_new_i, char_behind, 1);
+            const dmg_cr = Cor.Coroutine.make(
+                DamageCoroutine,
+                .{ texture, self, target_new_i, char_behind, 1 },
+            );
             cb_routines.append(dmg_cr) catch unreachable;
         }
-        const move_routine = std.heap.c_allocator.create(
-            MoveCoroutine,
-        ) catch unreachable;
-        move_routine.* = MoveCoroutine.init(
-            self,
-            target_new_i,
-            targeted_char,
-            std.ArrayList(Cor.Coroutine).init(std.heap.c_allocator),
-            input,
+        const empty = std.ArrayList(Cor.Coroutine).init(
+            std.heap.c_allocator,
         );
-        cb_routines.append(
-            Cor.Coroutine.init(move_routine, MoveCoroutine.move),
-        ) catch unreachable;
-        const dmg_cr = self.makeDmgRoutine(texture, target_i, targeted_char, targeted_char_dmg);
+        const move_cr = Cor.Coroutine.make(
+            MoveCoroutine,
+            .{ self, target_new_i, targeted_char, empty, input },
+        );
+        cb_routines.append(move_cr) catch unreachable;
+        const dmg_cr = Cor.Coroutine.make(
+            DamageCoroutine,
+            .{ texture, self, target_i, targeted_char, targeted_char_dmg },
+        );
         cb_routines.append(dmg_cr) catch unreachable;
     }
 
