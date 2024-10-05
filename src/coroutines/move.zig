@@ -7,7 +7,7 @@ const Character = @import("../systems/board.zig").Character;
 const Cor = @import("../systems/coroutine.zig");
 
 pub const MoveCoroutine = struct {
-    target_index: Index,
+    target_index: ?Index,
     target_position: Position,
     char: Character,
     cb_routines: std.ArrayList(Cor.Coroutine),
@@ -15,7 +15,8 @@ pub const MoveCoroutine = struct {
 
     pub fn init(
         board: *Board,
-        target_index: Index,
+        target_index: ?Index,
+        target_position: Position,
         char: Character,
         cb_routines: std.ArrayList(Cor.Coroutine),
         input: *Input,
@@ -27,7 +28,6 @@ pub const MoveCoroutine = struct {
             },
         }
 
-        const target_position = board.posFromIndex(target_index).?;
         input.lock += 1;
         return .{
             .target_index = target_index,
@@ -53,7 +53,8 @@ pub const MoveCoroutine = struct {
 
                 const delta = @abs(dx) + @abs(dy);
                 if (delta < 10.0) {
-                    c.*.index = self.target_index;
+                    if (self.target_index) |t_i| c.*.index = t_i;
+
                     c.*.position = self.target_position;
                     self.input.lock -= 1;
                     for (self.cb_routines.items) |routine| {

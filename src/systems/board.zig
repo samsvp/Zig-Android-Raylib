@@ -64,6 +64,7 @@ pub const Board = struct {
     enemies: std.ArrayList(*Enemy),
     player: ?Player,
     scale: f32,
+    pos: Position,
 
     allocator: std.mem.Allocator,
 
@@ -94,6 +95,7 @@ pub const Board = struct {
             .tiles = tiles,
             .enemies = std.ArrayList(*Enemy).init(allocator),
             .player = Player.init(5, player_index, scale),
+            .pos = pos,
             .scale = scale,
             .allocator = allocator,
         };
@@ -126,7 +128,7 @@ pub const Board = struct {
         defer {
             const move_cr = Cor.Coroutine.make(
                 MoveCoroutine,
-                .{ self, target_i, char, cb_routines, input },
+                .{ self, target_i, self.posFromIndex(target_i).?, char, cb_routines, input },
             );
             Cor.global_runner.add(move_cr);
         }
@@ -177,12 +179,19 @@ pub const Board = struct {
         );
         const move_cr = Cor.Coroutine.make(
             MoveCoroutine,
-            .{ self, target_new_i, targeted_char, empty, input },
+            .{
+                self,
+                target_new_i,
+                self.posFromIndex(target_new_i).?,
+                targeted_char,
+                empty,
+                input,
+            },
         );
         cb_routines.append(move_cr) catch unreachable;
         const dmg_cr = Cor.Coroutine.make(
             DamageCoroutine,
-            .{ texture, self, target_i, targeted_char, targeted_char_dmg },
+            .{ texture, self, target_new_i, targeted_char, targeted_char_dmg },
         );
         cb_routines.append(dmg_cr) catch unreachable;
     }
@@ -380,6 +389,14 @@ pub const Board = struct {
     pub fn posFromIndex(self: Board, index: Index) ?Position {
         const tile = self.getTile(index) orelse return null;
         return tile.pos;
+    }
+
+    pub fn posFromCoord(self: Board, x: i32, y: i32) Position {
+        const pos = .{
+            .x = x * 32.0 * self.scale + self.pos.x,
+            .y = y * 32.0 * self.scale + self.pos.y,
+        };
+        return pos;
     }
 
     pub fn resetPaint(board: *Board) void {
