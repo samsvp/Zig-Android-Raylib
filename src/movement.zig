@@ -113,21 +113,21 @@ pub fn knight(
         .{ .x = 1, .y = 2 },
     };
     for (offsets) |offset| {
-        if (offset.y < index.y) {
+        if (offset.y <= index.y) {
             if (board.getTile(
                 .{ .x = index.x + offset.x, .y = index.y - offset.y },
             )) |tile| {
                 tiles.appendAssumeCapacity(tile);
             }
         }
-        if (offset.x < index.x) {
+        if (offset.x <= index.x) {
             if (board.getTile(
                 .{ .x = index.x - offset.x, .y = index.y + offset.y },
             )) |tile| {
                 tiles.appendAssumeCapacity(tile);
             }
         }
-        if (offset.x < index.x and offset.y < index.y) {
+        if (offset.x <= index.x and offset.y <= index.y) {
             if (board.getTile(
                 .{ .x = index.x - offset.x, .y = index.y - offset.y },
             )) |tile| {
