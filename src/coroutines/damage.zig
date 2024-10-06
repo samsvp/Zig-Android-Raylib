@@ -13,13 +13,6 @@ const Sprite = @import("../components/sprite.zig").Sprite;
 
 const N = 75;
 
-fn pointBoxCollision(point: Position, rect: C.Rectangle) bool {
-    return rect.x <= point.x and
-        rect.x + rect.width >= point.x and
-        rect.y <= point.y and
-        rect.y + rect.height >= point.y;
-}
-
 pub const DamageCoroutine = struct {
     texture: C.Texture,
     blood_scales: [N]f32,
@@ -32,6 +25,7 @@ pub const DamageCoroutine = struct {
     max_lifetime: f32,
     char: Character,
     damage: i32,
+    health: i32 = 1,
 
     board: *Board,
 
@@ -61,15 +55,17 @@ pub const DamageCoroutine = struct {
         for (0..N) |i| {
             pos[i] = pos0;
 
-            const vx = Random.floatInRange(-50.0, 50.0);
-            const vy = Random.floatInRange(-50.0, 50.0);
+            const vx = Random.floatInRange(-200.0, 200.0);
+            const vy = Random.floatInRange(-200.0, 200.0);
             vel[i] = .{ .x = vx, .y = vy };
-            acc[i] = .{
-                .x = -Random.floatInRange(1.0, 2.0),
-                .y = -Random.floatInRange(1.0, 2.0),
-            };
 
-            blood_scales[i] = Random.floatInRange(0.2, 1.0);
+            const s = Random.floatInRange(0.2, 1.0);
+            blood_scales[i] = s;
+
+            acc[i] = .{
+                .x = -s * 2.5,
+                .y = -s * 2.5,
+            };
         }
 
         return .{
@@ -82,7 +78,7 @@ pub const DamageCoroutine = struct {
             .pos = pos,
             .vel = vel,
             .acc = acc,
-            .max_lifetime = 3.0,
+            .max_lifetime = 1.5,
 
             .char = char,
             .damage = damage,
@@ -94,23 +90,15 @@ pub const DamageCoroutine = struct {
             switch (self.char) {
                 inline else => |*c| {
                     c.*.health -= self.damage;
-                    if (c.*.health < 0) {
+                    if (c.*.health <= 0) {
                         c.*.health = 0;
                     }
+                    self.health = c.*.health;
                 },
             }
         }
 
-        const b0 = self.board.posFromIndex(.{ .x = 0, .y = 0 }).?;
-        const fr: f32 = @floatFromInt(self.board.rows);
-        const fc: f32 = @floatFromInt(self.board.columns);
-        const rect = C.Rectangle{
-            .x = b0.x - 8.0,
-            .y = b0.y - 8.0,
-            .width = fc * 32.0 * 1.5,
-            .height = fr * 32.0 * 1.5,
-        };
-        for (0..self.pos.len) |i| {
+        if (self.health <= 0) for (0..self.pos.len) |i| {
             if (self.lifetime < self.max_lifetime) {
                 const old_vel = self.vel[i];
 
@@ -121,19 +109,35 @@ pub const DamageCoroutine = struct {
                 self.pos[i].y += (self.vel[i].y + old_vel.y) / 2.0 * dt;
             }
 
-            if (pointBoxCollision(self.pos[i], rect))
-                render(
-                    self.texture,
-                    self.pos[i],
-                    .{
-                        .scale = self.blood_scales[i],
-                        .frame_rect = self.frame_rect,
-                        .tint = C.WHITE,
+            const mod = i % 3;
+            render(
+                self.texture,
+                self.pos[i],
+                .{
+                    .scale = self.blood_scales[i],
+                    .frame_rect = self.frame_rect,
+                    .tint = .{
+                        .r = 255 * @as(u8, @intFromBool(mod == 0)),
+                        .g = 255 * @as(u8, @intFromBool(mod == 1)),
+                        .b = 255 * @as(u8, @intFromBool(mod == 2)),
+                        .a = @intFromFloat(255.0 * (1.0 - self.lifetime / self.max_lifetime)),
                     },
-                );
-        }
+                },
+            );
+        };
+
         if (self.lifetime < self.max_lifetime) {
             self.lifetime += dt;
+        } else {
+            return true;
+        }
+
+        if (self.lifetime <= 0.5) {
+            if (@mod(std.math.round(self.lifetime * 10.0), 2.0) == 0) {
+                switch (self.char) {
+                    inline else => |*c| c.*.sprite.tint = C.RED,
+                }
+            }
         }
 
         return false;

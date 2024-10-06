@@ -191,7 +191,7 @@ pub const Board = struct {
         cb_routines.append(move_cr) catch unreachable;
         const dmg_cr = Cor.Coroutine.make(
             DamageCoroutine,
-            .{ texture, self, target_new_i, targeted_char, targeted_char_dmg },
+            .{ texture, self, target_i, targeted_char, targeted_char_dmg },
         );
         cb_routines.append(dmg_cr) catch unreachable;
     }
