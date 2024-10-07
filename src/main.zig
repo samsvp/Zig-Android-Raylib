@@ -16,6 +16,7 @@ const Enemy = @import("entities/enemy.zig").Enemy;
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
 
 const Position = @import("components/position.zig").Position;
+const Sprite = @import("components/sprite.zig").Sprite;
 const Globals = @import("globals.zig").Globals;
 
 pub export fn main() void {
@@ -74,6 +75,17 @@ pub export fn main() void {
         .player_cards = &player_cards,
         .input = &input,
         .coroutine_runner = &Coroutine.global_runner,
+    };
+
+    const mana_sprite = Sprite{
+        .scale = 1.5,
+        .tint = C.WHITE,
+        .frame_rect = C.Rectangle{
+            .x = 32.0,
+            .y = 96.0,
+            .width = 32.0,
+            .height = 32.0,
+        },
     };
 
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
@@ -139,9 +151,19 @@ pub export fn main() void {
                 player.sprite,
             );
 
-            //for (0..player.mana) |i| {
-            //    const mana_pos =
-            //}
+            if (turn.player_kind == Turn.PlayerKind.PLAYER) for (0..@intCast(player.mana)) |i| {
+                const mana_pos = Position{
+                    .x = @floatFromInt(16 * i + 2 * window_w / 3),
+                    .y = @floatFromInt(2 * window_h / 3 + 22),
+                };
+                render(
+                    globals.window_w,
+                    globals.window_h,
+                    sprite_sheet,
+                    mana_pos,
+                    mana_sprite,
+                );
+            };
         }
         for (player_cards.hand.items, 0..) |card, i| {
             render(

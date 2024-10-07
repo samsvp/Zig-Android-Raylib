@@ -157,6 +157,9 @@ pub const Input = struct {
                         if (!l_mouse_pressed) continue;
 
                         _ = player_cards.play(globals, tile.*.*);
+                        if (player_cards.hand.items.len == 0 or player.mana == 0) {
+                            globals.turn.change();
+                        }
                     }
                 }
             };
