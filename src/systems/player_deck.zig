@@ -100,7 +100,10 @@ pub const PlayerCards = struct {
         const middle: f32 = @floatFromInt(self.hand.items.len / 2);
         const f_i: f32 = @floatFromInt(i);
         const w = self.sprite.frame_rect.width;
-        const offset_x = 2.5 * w * (f_i - middle) - w / 2;
+        const offset_x = if (self.hand.items.len % 2 == 0)
+            2.5 * w * (f_i - middle) - w / 2 + 24
+        else
+            2.5 * w * (f_i - middle) - w / 2;
 
         const card = self.hand.items[i];
         var offset_y: f32 = -self.sprite.frame_rect.height;

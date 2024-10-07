@@ -114,10 +114,12 @@ pub const Input = struct {
         tiles_attackers.deinit();
 
         const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
-        var i = player_cards.hand.items.len - 1;
-        while (true) {
-            const card = &player_cards.hand.items[i];
-            const pos = player_cards.getHandPosition(i);
+        var i: i32 = @intCast(player_cards.hand.items.len - 1);
+        while (i >= 0) : (i -= 1) {
+            const u_i: usize = @intCast(i);
+
+            const card = &player_cards.hand.items[u_i];
+            const pos = player_cards.getHandPosition(u_i);
             const dest_rect = C.Rectangle{
                 .x = pos.x,
                 .y = pos.y,
@@ -129,46 +131,46 @@ pub const Input = struct {
             const tint = if (is_selected) C.BLUE else C.GREEN;
             card.*.highlighted = player_cards.selected_card < 0 and
                 pointBoxCollision(mouse_pos, dest_rect);
-            if (card.highlighted or is_selected) if (board.player) |player| {
-                var p_tiles = Movement.getTiles(
-                    card.card_kind,
-                    board,
-                    player.index,
-                    std.heap.c_allocator,
-                );
-                defer p_tiles.deinit();
-
-                for (p_tiles.items) |*tile| {
-                    var c = tile.*.sprite.tint;
-                    tile.*.sprite.tint = C.ColorTint(c, tint);
-                    if (!is_selected) continue;
-
-                    const tile_pos = board.posFromIndex(tile.*.index) orelse unreachable;
-                    const rect = C.Rectangle{
-                        .x = tile_pos.x,
-                        .y = tile_pos.y,
-                        .width = 32.0 * board.scale,
-                        .height = 32.0 * board.scale,
-                    };
-
-                    if (pointBoxCollision(mouse_pos, rect)) {
-                        c = tile.*.sprite.tint;
-                        tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
-                        if (!l_mouse_pressed) continue;
-
-                        _ = player_cards.play(globals, tile.*.*);
-                        if (player_cards.hand.items.len == 0 or player.mana == 0) {
-                            globals.turn.change();
-                        }
-                    }
-                }
-            };
 
             if (l_mouse_pressed and card.highlighted) {
                 player_cards.selected_card = @intCast(i);
             }
 
-            if (i > 0) i -= 1 else break;
+            if (!card.highlighted and !is_selected) continue;
+
+            const player = &(board.player orelse continue);
+            var p_tiles = Movement.getTiles(
+                card.card_kind,
+                board,
+                player.index,
+                std.heap.c_allocator,
+            );
+            defer p_tiles.deinit();
+
+            for (p_tiles.items) |tile| {
+                var c = tile.*.sprite.tint;
+                tile.*.sprite.tint = C.ColorTint(c, tint);
+                if (!is_selected) continue;
+
+                const tile_pos = board.posFromIndex(tile.*.index) orelse unreachable;
+                const rect = C.Rectangle{
+                    .x = tile_pos.x,
+                    .y = tile_pos.y,
+                    .width = 32.0 * board.scale,
+                    .height = 32.0 * board.scale,
+                };
+
+                if (pointBoxCollision(mouse_pos, rect)) {
+                    c = tile.*.sprite.tint;
+                    tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
+                    if (!l_mouse_pressed) continue;
+
+                    _ = player_cards.play(globals, tile.*);
+                    if (player_cards.hand.items.len == 0 or player.mana == 0) {
+                        globals.turn.change();
+                    }
+                }
+            }
         }
 
         const r_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_RIGHT);

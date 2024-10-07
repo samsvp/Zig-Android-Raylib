@@ -88,6 +88,17 @@ pub export fn main() void {
         },
     };
 
+    const heart_sprite = Sprite{
+        .scale = 1.5,
+        .tint = C.WHITE,
+        .frame_rect = C.Rectangle{
+            .x = 0.0,
+            .y = 128.0,
+            .width = 32.0,
+            .height = 32.0,
+        },
+    };
+
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
 
@@ -151,6 +162,20 @@ pub export fn main() void {
                 player.sprite,
             );
 
+            for (0..@intCast(player.health)) |i| {
+                const heart_pos = Position{
+                    .x = @floatFromInt(16 * i + window_w / 4),
+                    .y = @floatFromInt(2 * window_h / 3 + 22),
+                };
+                render(
+                    globals.window_w,
+                    globals.window_h,
+                    sprite_sheet,
+                    heart_pos,
+                    heart_sprite,
+                );
+            }
+
             if (turn.player_kind == Turn.PlayerKind.PLAYER) for (0..@intCast(player.mana)) |i| {
                 const mana_pos = Position{
                     .x = @floatFromInt(16 * i + 2 * window_w / 3),
@@ -164,15 +189,15 @@ pub export fn main() void {
                     mana_sprite,
                 );
             };
-        }
-        for (player_cards.hand.items, 0..) |card, i| {
-            render(
-                globals.window_w,
-                globals.window_h,
-                cards_sprite_sheet,
-                player_cards.getHandPosition(i),
-                card.sprite,
-            );
+            if (turn.player_kind == Turn.PlayerKind.PLAYER) for (player_cards.hand.items, 0..) |card, i| {
+                render(
+                    globals.window_w,
+                    globals.window_h,
+                    cards_sprite_sheet,
+                    player_cards.getHandPosition(i),
+                    card.sprite,
+                );
+            };
         }
 
         input.listen(&globals);
