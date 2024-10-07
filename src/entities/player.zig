@@ -11,6 +11,7 @@ pub const Player = struct {
     position: Position,
     sprite: Sprite,
     mana: i32,
+    max_mana: i32,
 
     pub fn init(
         health: Health,
@@ -29,7 +30,8 @@ pub const Player = struct {
             .index = index,
             .position = .{ .x = 0, .y = 0 },
             .sprite = .{ .scale = scale, .frame_rect = frame_rect, .tint = C.WHITE },
-            .mana = 3,
+            .mana = 2,
+            .max_mana = 3,
         };
     }
 };

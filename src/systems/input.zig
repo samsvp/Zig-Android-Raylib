@@ -9,6 +9,8 @@ const TileAttackers = @import("board.zig").TileAttackers;
 const Movement = @import("../movement.zig");
 const Globals = @import("../globals.zig").Globals;
 const exit = @import("../utils.zig").exit;
+const Turn = @import("turn.zig");
+const R = @import("render.zig");
 
 pub const Input = struct {
     is_move_preview: bool = false,
@@ -49,12 +51,9 @@ pub const Input = struct {
 
     pub fn mouseTileCollision(
         board: *Board,
+        mouse_pos: Position,
         tiles_attackers: TileAttackers,
     ) void {
-        const mouse_pos = Position{
-            .x = @floatFromInt(C.GetMouseX()),
-            .y = @floatFromInt(C.GetMouseY()),
-        };
         for (0..board.rows) |y| {
             for (0..board.columns) |x| {
                 checkTACollision(board, tiles_attackers, x, y, mouse_pos);
@@ -72,6 +71,10 @@ pub const Input = struct {
         board.resetPaint();
         for (board.enemies.items) |*e| {
             e.*.sprite.tint = C.WHITE;
+        }
+
+        if (globals.turn.player_kind == Turn.PlayerKind.COMP) {
+            return;
         }
 
         if (self.lock > 0) {
@@ -95,18 +98,25 @@ pub const Input = struct {
             }
         }
 
-        var tiles_attackers = board.calculateTilesAttackers(
-            std.heap.c_allocator,
-        ) catch unreachable;
-        mouseTileCollision(board, tiles_attackers);
-        tiles_attackers.deinit();
-
-        const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
-        const mouse_pos = Position{
+        const fw: f32 = @floatFromInt(globals.window_w - R.initial_w);
+        const fh: f32 = @floatFromInt(globals.window_h - R.initial_h);
+        var mouse_pos = Position{
             .x = @floatFromInt(C.GetMouseX()),
             .y = @floatFromInt(C.GetMouseY()),
         };
-        for (player_cards.hand.items, 0..) |*card, i| {
+        mouse_pos.x -= 0.5 * fw;
+        mouse_pos.y -= 0.5 * fh;
+
+        var tiles_attackers = board.calculateTilesAttackers(
+            std.heap.c_allocator,
+        ) catch unreachable;
+        mouseTileCollision(board, mouse_pos, tiles_attackers);
+        tiles_attackers.deinit();
+
+        const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
+        var i = player_cards.hand.items.len - 1;
+        while (true) {
+            const card = &player_cards.hand.items[i];
             const pos = player_cards.getHandPosition(i);
             const dest_rect = C.Rectangle{
                 .x = pos.x,
@@ -146,10 +156,7 @@ pub const Input = struct {
                         tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
                         if (!l_mouse_pressed) continue;
 
-                        if (!tile.*.index.equals(player.index)) {
-                            board.playerMoveTo(tile.*.index, globals);
-                        }
-                        player_cards.selected_card = -1;
+                        _ = player_cards.play(globals, tile.*.*);
                     }
                 }
             };
@@ -157,6 +164,8 @@ pub const Input = struct {
             if (l_mouse_pressed and card.highlighted) {
                 player_cards.selected_card = @intCast(i);
             }
+
+            if (i > 0) i -= 1 else break;
         }
 
         const r_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_RIGHT);

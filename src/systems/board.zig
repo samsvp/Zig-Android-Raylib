@@ -156,7 +156,7 @@ pub const Board = struct {
         { // sent target out of bounds, kill
             const dmg_cr = Cor.Coroutine.make(
                 DamageCoroutine,
-                .{ texture, self, target_i, target_char.?, 100 },
+                .{ texture, globals, target_i, target_char.?, 100 },
             );
             cb_routines.append(dmg_cr) catch unreachable;
             return;
@@ -170,7 +170,7 @@ pub const Board = struct {
             targeted_char_dmg = 100;
             const dmg_cr = Cor.Coroutine.make(
                 DamageCoroutine,
-                .{ texture, self, target_new_i, char_behind, 1 },
+                .{ texture, globals, target_new_i, char_behind, 1 },
             );
             cb_routines.append(dmg_cr) catch unreachable;
         }
@@ -191,7 +191,7 @@ pub const Board = struct {
         cb_routines.append(move_cr) catch unreachable;
         const dmg_cr = Cor.Coroutine.make(
             DamageCoroutine,
-            .{ texture, self, target_i, targeted_char, targeted_char_dmg },
+            .{ texture, globals, target_i, targeted_char, targeted_char_dmg },
         );
         cb_routines.append(dmg_cr) catch unreachable;
     }

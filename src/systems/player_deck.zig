@@ -3,11 +3,14 @@ const std = @import("std");
 const C = @import("../c.zig").C;
 const exit = @import("../utils.zig").exit;
 const Movement = @import("../movement.zig");
+const Globals = @import("../globals.zig").Globals;
 
 const Card = @import("../entities/card.zig");
+const Tile = @import("../entities/tile.zig").Tile;
 const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
 
+const Board = @import("board.zig").Board;
 const Random = @import("random.zig").Random;
 
 extern fn free(ptr: ?*anyopaque) void;
@@ -110,5 +113,28 @@ pub const PlayerCards = struct {
             .x = 400.0 + offset_x,
             .y = 400.0 + offset_y,
         };
+    }
+
+    pub fn play(self: *PlayerCards, globals: *Globals, tile: Tile) bool {
+        var board = globals.board;
+        var player = &(board.player orelse return false);
+        if (player.mana <= 0 or
+            self.selected_card == -1)
+        {
+            return false;
+        }
+
+        std.debug.print("player mana: {}\n", .{player.mana});
+        player.mana -= 1;
+        const card = self.hand.orderedRemove(@intCast(self.selected_card));
+        std.debug.print("new len {}\n", .{self.hand.items.len});
+        self.selected_card = -1;
+        self.grave.append(card) catch unreachable;
+
+        if (!tile.index.equals(player.index)) {
+            board.playerMoveTo(tile.index, globals);
+        }
+
+        return true;
     }
 };

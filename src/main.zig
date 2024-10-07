@@ -10,6 +10,7 @@ const Board = @import("systems/board.zig").Board;
 const Input = @import("systems/input.zig").Input;
 const render = @import("systems/render.zig").render;
 const Coroutine = @import("systems/coroutine.zig");
+const Turn = @import("systems/turn.zig");
 
 const Enemy = @import("entities/enemy.zig").Enemy;
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
@@ -18,7 +19,9 @@ const Position = @import("components/position.zig").Position;
 const Globals = @import("globals.zig").Globals;
 
 pub export fn main() void {
-    C.InitWindow(800, 450, "raylib [core] example - basic window");
+    const window_w = 800;
+    const window_h = 450;
+    C.InitWindow(window_w, window_h, "raylib [core] example - basic window");
     defer C.CloseWindow();
 
     // load all assets
@@ -55,12 +58,18 @@ pub export fn main() void {
     board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
     var input = Input{};
 
+    var turn = Turn.Turn{ .current = 1, .player_kind = Turn.PlayerKind.PLAYER };
+
     Coroutine.global_runner = Coroutine.CoroutineRunner.init(std.heap.c_allocator);
     defer Coroutine.global_runner.deinit();
 
     var globals = Globals{
+        .window_w = window_w,
+        .window_h = window_h,
+
         .sprite_sheet = sprite_sheet,
         .cards_sprite_sheet = cards_sprite_sheet,
+        .turn = &turn,
         .board = &board,
         .player_cards = &player_cards,
         .input = &input,
@@ -75,7 +84,18 @@ pub export fn main() void {
         // Update
         //----------------------------------------------------------------------------------
         if (C.IsKeyPressed(C.KEY_A)) {
-            AI.chooseMoves(0, &globals);
+            //AI.chooseMoves(0, &globals);
+            if (C.IsWindowFullscreen()) {
+                globals.window_w = window_w;
+                globals.window_h = window_h;
+            } else {
+                const display = C.GetCurrentMonitor();
+                // if we are not full screen, set the window size to match the monitor we are on
+                globals.window_w = C.GetMonitorWidth(display);
+                globals.window_h = C.GetMonitorHeight(display);
+            }
+            C.SetWindowSize(globals.window_w, globals.window_h);
+            C.ToggleFullscreen();
         }
 
         C.BeginDrawing();
@@ -84,7 +104,13 @@ pub export fn main() void {
         C.ClearBackground(C.BLACK);
 
         for (board.tiles.items) |tile| {
-            render(sprite_sheet, tile.pos, tile.sprite);
+            render(
+                globals.window_w,
+                globals.window_h,
+                sprite_sheet,
+                tile.pos,
+                tile.sprite,
+            );
         }
 
         const dt = C.GetFrameTime();
@@ -94,15 +120,37 @@ pub export fn main() void {
             if (e.health <= 0) continue;
 
             const pos = board.posFromIndex(e.index) orelse e.position;
-            render(sprite_sheet, pos, e.sprite);
+            render(
+                globals.window_w,
+                globals.window_h,
+                sprite_sheet,
+                pos,
+                e.sprite,
+            );
         }
 
         if (board.player) |player| {
             const pos = board.posFromIndex(player.index) orelse player.position;
-            render(sprite_sheet, pos, player.sprite);
+            render(
+                globals.window_w,
+                globals.window_h,
+                sprite_sheet,
+                pos,
+                player.sprite,
+            );
+
+            //for (0..player.mana) |i| {
+            //    const mana_pos =
+            //}
         }
         for (player_cards.hand.items, 0..) |card, i| {
-            render(cards_sprite_sheet, player_cards.getHandPosition(i), card.sprite);
+            render(
+                globals.window_w,
+                globals.window_h,
+                cards_sprite_sheet,
+                player_cards.getHandPosition(i),
+                card.sprite,
+            );
         }
 
         input.listen(&globals);

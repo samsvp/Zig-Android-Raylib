@@ -1,6 +1,8 @@
 const C = @import("../c.zig").C;
 const std = @import("std");
 
+const Globals = @import("../globals.zig").Globals;
+
 const Board = @import("../systems/board.zig").Board;
 const Character = @import("../systems/board.zig").Character;
 const Input = @import("../systems/input.zig").Input;
@@ -27,15 +29,16 @@ pub const DamageCoroutine = struct {
     damage: i32,
     health: i32 = 1,
 
-    board: *Board,
+    globals: *Globals,
 
     pub fn init(
         texture: C.Texture,
-        board: *Board,
+        globals: *Globals,
         index: Index,
         char: Character,
         damage: i32,
     ) DamageCoroutine {
+        const board = globals.board;
         var pos0 = board.posFromIndex(index) orelse Position{ .x = 0, .y = 0 };
         pos0.x += 16;
         pos0.y += 16;
@@ -73,7 +76,7 @@ pub const DamageCoroutine = struct {
             .blood_scales = blood_scales,
             .frame_rect = frame_rect,
 
-            .board = board,
+            .globals = globals,
 
             .pos = pos,
             .vel = vel,
@@ -111,6 +114,8 @@ pub const DamageCoroutine = struct {
 
             const mod = i % 3;
             render(
+                self.globals.window_w,
+                self.globals.window_h,
                 self.texture,
                 self.pos[i],
                 .{
