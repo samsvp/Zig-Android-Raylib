@@ -102,6 +102,7 @@ pub export fn main() void {
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
 
+    var current_enemy_idx: u64 = 0;
     C.SetTargetFPS(60);
     while (!C.WindowShouldClose()) {
         // Update
@@ -135,6 +136,9 @@ pub export fn main() void {
                 tile.sprite,
             );
         }
+        if (board.player) |*player| {
+            player.sprite.tint = C.WHITE;
+        }
 
         const dt = C.GetFrameTime();
         Coroutine.global_runner.update(dt);
@@ -152,7 +156,7 @@ pub export fn main() void {
             );
         }
 
-        if (board.player) |player| {
+        if (board.player) |player| if (player.health > 0) {
             const pos = board.posFromIndex(player.index) orelse player.position;
             render(
                 globals.window_w,
@@ -198,8 +202,24 @@ pub export fn main() void {
                     card.sprite,
                 );
             };
-        }
+        };
 
+        if (turn.player_kind == Turn.PlayerKind.COMP) {
+            if (globals.input.lock > 0) {
+                continue;
+            }
+
+            if (current_enemy_idx >= globals.board.enemies.items.len) {
+                std.debug.print("Changing turn to player\n", .{});
+                globals.turn.change(&globals);
+                current_enemy_idx = 0;
+                continue;
+            }
+
+            std.debug.print("Choosing moves for enemy {}\n", .{current_enemy_idx});
+            AI.chooseMoves(current_enemy_idx, &globals);
+            current_enemy_idx += 1;
+        }
         input.listen(&globals);
     }
 }

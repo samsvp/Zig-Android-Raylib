@@ -12,6 +12,7 @@ pub const MoveCoroutine = struct {
     char: Character,
     cb_routines: std.ArrayList(Cor.Coroutine),
     input: *Input,
+    had_err: bool,
 
     pub fn init(
         board: *Board,
@@ -21,10 +22,17 @@ pub const MoveCoroutine = struct {
         cb_routines: std.ArrayList(Cor.Coroutine),
         input: *Input,
     ) MoveCoroutine {
+        var had_err = false;
         switch (char) {
             inline else => |c| {
-                c.*.position = board.posFromIndex(c.*.index).?;
-                c.*.index = .{ .x = board.columns, .y = board.rows };
+                c.*.position = board.posFromIndex(c.*.index) orelse blk: {
+                    std.debug.print("---------------------------- Invalid index\n", .{});
+                    had_err = true;
+                    break :blk c.*.position;
+                };
+                if (!had_err) {
+                    c.*.index = .{ .x = board.columns, .y = board.rows };
+                }
             },
         }
 
@@ -35,10 +43,17 @@ pub const MoveCoroutine = struct {
             .char = char,
             .cb_routines = cb_routines,
             .input = input,
+            .had_err = had_err,
         };
     }
 
     pub fn coroutine(self: *MoveCoroutine, dt: f32) bool {
+        if (self.had_err) {
+            std.debug.print("Movement out \n", .{});
+            self.input.lock -= 1;
+            return true;
+        }
+
         switch (self.char) {
             inline else => |c| {
                 const dx = self.target_position.x - c.*.position.x;

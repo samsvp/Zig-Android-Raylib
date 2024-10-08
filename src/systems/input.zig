@@ -160,15 +160,18 @@ pub const Input = struct {
                     .height = 32.0 * board.scale,
                 };
 
-                if (pointBoxCollision(mouse_pos, rect)) {
-                    c = tile.*.sprite.tint;
-                    tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
-                    if (!l_mouse_pressed) continue;
+                if (!pointBoxCollision(mouse_pos, rect)) {
+                    continue;
+                }
 
-                    _ = player_cards.play(globals, tile.*);
-                    if (player_cards.hand.items.len == 0 or player.mana == 0) {
-                        globals.turn.change();
-                    }
+                c = tile.*.sprite.tint;
+                tile.*.sprite.tint = C.ColorTint(c, C.YELLOW);
+                if (!l_mouse_pressed) continue;
+
+                _ = player_cards.play(globals, tile.*);
+                if (player_cards.hand.items.len == 0 or player.mana == 0) {
+                    std.debug.print("Changing turn to enemy\n", .{});
+                    globals.turn.change(globals);
                 }
             }
         }

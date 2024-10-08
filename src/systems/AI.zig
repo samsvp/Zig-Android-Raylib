@@ -22,10 +22,19 @@ pub const AI = struct {
         var board = globals.board;
 
         if (board.enemies.items.len <= enemy_i) {
+            std.debug.print("Out of range\n", .{});
             return;
         }
+        if (board.player) |player| if (player.health <= 0) {
+            std.debug.print("Player dead\n", .{});
+            return;
+        };
 
         const enemy = board.enemies.items[enemy_i];
+        if (enemy.health <= 0) {
+            std.debug.print("Enemy dead\n", .{});
+            return;
+        }
         var tiles = enemy.movementFunc(board, enemy.index, std.heap.c_allocator);
         defer tiles.deinit();
 

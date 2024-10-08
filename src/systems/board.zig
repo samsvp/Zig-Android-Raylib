@@ -126,11 +126,15 @@ pub const Board = struct {
             std.heap.c_allocator,
         );
         defer {
-            const move_cr = Cor.Coroutine.make(
-                MoveCoroutine,
-                .{ self, target_i, self.posFromIndex(target_i).?, char, cb_routines, input },
-            );
-            Cor.global_runner.add(move_cr);
+            switch (char) {
+                inline else => |c| if (self.posFromIndex(c.index)) |_| {
+                    const move_cr = Cor.Coroutine.make(
+                        MoveCoroutine,
+                        .{ self, target_i, self.posFromIndex(target_i).?, char, cb_routines, input },
+                    );
+                    Cor.global_runner.add(move_cr);
+                },
+            }
         }
 
         const targeted_char = self.getCharacterAtIndex(target_i) orelse {
@@ -177,6 +181,12 @@ pub const Board = struct {
         const empty = std.ArrayList(Cor.Coroutine).init(
             std.heap.c_allocator,
         );
+        switch (targeted_char) {
+            inline else => |c| if (self.posFromIndex(c.index) == null) {
+                return;
+            },
+        }
+
         const move_cr = Cor.Coroutine.make(
             MoveCoroutine,
             .{
