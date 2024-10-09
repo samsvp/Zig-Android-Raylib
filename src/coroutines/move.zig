@@ -54,7 +54,7 @@ pub const MoveCoroutine = struct {
                 if (self.target_index) |t_i| c.*.index = t_i;
 
                 c.*.position = self.target_position;
-                self.input.lock -= 1;
+                self.input.lock_ -= 1;
                 for (self.cb_routines.items) |routine| {
                     Cor.global_runner.add(routine);
                 }

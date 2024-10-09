@@ -142,6 +142,7 @@ pub export fn main() void {
 
         const dt = C.GetFrameTime();
         Coroutine.global_runner.update(dt);
+        input.listen(dt, &globals);
 
         for (board.enemies.items) |e| {
             if (e.health <= 0) continue;
@@ -205,7 +206,7 @@ pub export fn main() void {
         };
 
         if (turn.player_kind == Turn.PlayerKind.COMP) {
-            if (globals.input.lock > 0) {
+            if (globals.input.lock_ > 0) {
                 continue;
             }
 
@@ -220,6 +221,5 @@ pub export fn main() void {
             AI.chooseMoves(current_enemy_idx, &globals);
             current_enemy_idx += 1;
         }
-        input.listen(&globals);
     }
 }
