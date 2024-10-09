@@ -147,7 +147,7 @@ pub export fn main() void {
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
 
-    var current_enemy_idx: u64 = 0;
+    var current_enemy_idx: usize = 0;
     C.SetTargetFPS(60);
     while (!C.WindowShouldClose()) {
         // Update
