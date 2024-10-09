@@ -7,9 +7,11 @@ const Position = @import("../components/position.zig").Position;
 
 const Enemy = @import("../entities/enemy.zig").Enemy;
 const Player = @import("../entities/player.zig").Player;
+const Sprite = @import("../components/sprite.zig").Sprite;
 const Tile = @import("../entities/tile.zig").Tile;
 const Cor = @import("coroutine.zig");
 const Input = @import("input.zig").Input;
+const render = @import("render.zig").render;
 const DamageCoroutine = @import("../coroutines/damage.zig").DamageCoroutine;
 const MoveCoroutine = @import("../coroutines/move.zig").MoveCoroutine;
 const Globals = @import("../globals.zig").Globals;
@@ -365,27 +367,31 @@ pub const Board = struct {
         return self.getCharacterAtIndex(index);
     }
 
-    fn paintMoves(
+    pub fn previewMoves(
         self: *Board,
         enemy: Enemy,
-        tint: C.Color,
+        sprite_sheet: C.Texture,
+        window_w: c_int,
+        window_h: c_int,
     ) void {
+        if (enemy.health <= 0) return;
+
         var tiles = enemy.movementFunc(self, enemy.index, std.heap.c_allocator);
         defer tiles.deinit();
 
-        for (tiles.items) |*tile| {
-            tile.*.sprite.tint = tint;
+        for (tiles.items) |tile| {
+            const sprite = Sprite{
+                .scale = 1.5,
+                .tint = C.WHITE,
+                .frame_rect = C.Rectangle{
+                    .x = 32.0,
+                    .y = 128.0,
+                    .width = 32.0,
+                    .height = 32.0,
+                },
+            };
+            render(window_w, window_h, sprite_sheet, tile.pos, sprite);
         }
-    }
-
-    pub fn previewMoves(self: *Board, enemy: Enemy) void {
-        if (enemy.health <= 0) return;
-
-        self.paintMoves(enemy, C.RED);
-    }
-
-    pub fn undoPreviewMoves(self: *Board, enemy: Enemy) void {
-        self.paintMoves(enemy, C.WHITE);
     }
 
     pub fn getTile(self: Board, index: Index) ?*Tile {

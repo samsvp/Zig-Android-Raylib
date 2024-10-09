@@ -13,7 +13,6 @@ const Turn = @import("turn.zig");
 const R = @import("render.zig");
 
 pub const Input = struct {
-    is_move_preview: bool = false,
     lock_: i32 = 0,
 
     max_lock_time: f32 = 1,
@@ -69,19 +68,21 @@ pub const Input = struct {
         self.current_lock_time = 0;
     }
 
+    pub fn update(self: *Input, dt: f32) void {
+        if (self.lock_ <= 0) return;
+
+        self.current_lock_time += dt;
+        if (self.current_lock_time > self.max_lock_time) {
+            self.lock_ = 0;
+            self.current_lock_time = 0;
+            std.debug.print("input timeout\n", .{});
+        }
+    }
+
     pub fn listen(
         self: *Input,
-        dt: f32,
         globals: *Globals,
     ) void {
-        if (self.lock_ > 0) {
-            self.current_lock_time += dt;
-            if (self.current_lock_time > self.max_lock_time) {
-                self.lock_ = 0;
-                self.current_lock_time = 0;
-            }
-        }
-
         var board = globals.board;
         var player_cards = globals.player_cards;
 
@@ -101,20 +102,6 @@ pub const Input = struct {
             self.lock_ = 0;
         }
 
-        if (C.IsKeyPressed(C.KEY_P)) {
-            self.is_move_preview = true;
-        }
-
-        if (C.IsKeyPressed(C.KEY_U)) {
-            self.is_move_preview = false;
-        }
-
-        if (self.is_move_preview) {
-            for (board.enemies.items) |e| {
-                board.previewMoves(e.*);
-            }
-        }
-
         const fw: f32 = @floatFromInt(globals.window_w - R.initial_w);
         const fh: f32 = @floatFromInt(globals.window_h - R.initial_h);
         var mouse_pos = Position{
@@ -124,13 +111,46 @@ pub const Input = struct {
         mouse_pos.x -= 0.5 * fw;
         mouse_pos.y -= 0.5 * fh;
 
+        const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
+
+        const back_button_rect = C.Rectangle{
+            .x = globals.back_button_position.x,
+            .y = globals.back_button_position.y,
+            .width = 48.0,
+            .height = 48.0,
+        };
+        if (pointBoxCollision(mouse_pos, back_button_rect)) {
+            globals.back_button.tint = C.LIGHTGRAY;
+            if (l_mouse_pressed and player_cards.selected_card > -1) {
+                player_cards.selected_card = -1;
+            }
+        } else {
+            globals.back_button.tint = C.WHITE;
+        }
+
+        const end_button_rect = C.Rectangle{
+            .x = globals.end_button_position.x,
+            .y = globals.end_button_position.y,
+            .width = 48.0,
+            .height = 48.0,
+        };
+        if (pointBoxCollision(mouse_pos, end_button_rect)) {
+            globals.end_button.tint = C.LIGHTGRAY;
+            if (l_mouse_pressed and
+                globals.turn.player_kind == Turn.PlayerKind.PLAYER)
+            {
+                globals.turn.change(globals);
+            }
+        } else {
+            globals.end_button.tint = C.WHITE;
+        }
+
         var tiles_attackers = board.calculateTilesAttackers(
             std.heap.c_allocator,
         ) catch unreachable;
         mouseTileCollision(board, mouse_pos, tiles_attackers);
         tiles_attackers.deinit();
 
-        const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
         var i: i32 = @intCast(player_cards.hand.items.len - 1);
         while (i >= 0) : (i -= 1) {
             const u_i: usize = @intCast(i);
@@ -187,7 +207,6 @@ pub const Input = struct {
 
                 _ = player_cards.play(globals, tile.*);
                 if (player_cards.hand.items.len == 0 or player.mana == 0) {
-                    std.debug.print("Changing turn to enemy\n", .{});
                     globals.turn.change(globals);
                 }
             }

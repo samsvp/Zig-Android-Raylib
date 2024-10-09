@@ -127,10 +127,8 @@ pub const PlayerCards = struct {
             return false;
         }
 
-        std.debug.print("player mana: {}\n", .{player.mana});
         player.mana -= 1;
         const card = self.hand.orderedRemove(@intCast(self.selected_card));
-        std.debug.print("new len {}\n", .{self.hand.items.len});
         self.selected_card = -1;
         self.grave.append(card) catch unreachable;
 

@@ -19,6 +19,13 @@ const Position = @import("components/position.zig").Position;
 const Sprite = @import("components/sprite.zig").Sprite;
 const Globals = @import("globals.zig").Globals;
 
+fn pointBoxCollision(point: Position, rect: C.Rectangle) bool {
+    return rect.x <= point.x and
+        rect.x + rect.width >= point.x and
+        rect.y <= point.y and
+        rect.y + rect.height >= point.y;
+}
+
 pub export fn main() void {
     const window_w = 800;
     const window_h = 450;
@@ -64,9 +71,47 @@ pub export fn main() void {
     Coroutine.global_runner = Coroutine.CoroutineRunner.init(std.heap.c_allocator);
     defer Coroutine.global_runner.deinit();
 
+    var end_turn_button_pos = Position{
+        .x = 0.68 * 800.0,
+        .y = 0.90 * 450.0,
+    };
+
+    var end_turn_button_sprite = Sprite{
+        .scale = 1.5,
+        .tint = C.WHITE,
+        .frame_rect = C.Rectangle{
+            .x = 96.0,
+            .y = 128.0,
+            .width = 32.0,
+            .height = 32.0,
+        },
+    };
+
+    var back_sprite_pos = Position{
+        .x = 0.68 * 800.0,
+        .y = 0.82 * 450.0,
+    };
+
+    var back_sprite = Sprite{
+        .scale = 1.5,
+        .tint = C.WHITE,
+        .frame_rect = C.Rectangle{
+            .x = 64.0,
+            .y = 128.0,
+            .width = 32.0,
+            .height = 32.0,
+        },
+    };
+
     var globals = Globals{
         .window_w = window_w,
         .window_h = window_h,
+
+        .back_button = &back_sprite,
+        .back_button_position = &back_sprite_pos,
+
+        .end_button = &end_turn_button_sprite,
+        .end_button_position = &end_turn_button_pos,
 
         .sprite_sheet = sprite_sheet,
         .cards_sprite_sheet = cards_sprite_sheet,
@@ -142,7 +187,29 @@ pub export fn main() void {
 
         const dt = C.GetFrameTime();
         Coroutine.global_runner.update(dt);
-        input.listen(dt, &globals);
+        globals.input.update(dt);
+
+        for (board.enemies.items) |e| {
+            board.previewMoves(e.*, sprite_sheet, globals.window_w, globals.window_h);
+        }
+
+        if (globals.player_cards.selected_card > -1) {
+            render(
+                globals.window_w,
+                globals.window_h,
+                sprite_sheet,
+                back_sprite_pos,
+                back_sprite,
+            );
+        }
+
+        render(
+            globals.window_w,
+            globals.window_h,
+            sprite_sheet,
+            end_turn_button_pos,
+            end_turn_button_sprite,
+        );
 
         for (board.enemies.items) |e| {
             if (e.health <= 0) continue;
@@ -211,15 +278,14 @@ pub export fn main() void {
             }
 
             if (current_enemy_idx >= globals.board.enemies.items.len) {
-                std.debug.print("Changing turn to player\n", .{});
                 globals.turn.change(&globals);
                 current_enemy_idx = 0;
                 continue;
             }
 
-            std.debug.print("Choosing moves for enemy {}\n", .{current_enemy_idx});
             AI.chooseMoves(current_enemy_idx, &globals);
             current_enemy_idx += 1;
         }
+        input.listen(&globals);
     }
 }
