@@ -13,6 +13,8 @@ pub const MoveCoroutine = struct {
     cb_routines: std.ArrayList(Cor.Coroutine),
     input: *Input,
     had_err: bool,
+    max_time: f32 = 1.0,
+    current_time: f32 = 0.0,
 
     pub fn init(
         board: *Board,
@@ -26,17 +28,16 @@ pub const MoveCoroutine = struct {
         switch (char) {
             inline else => |c| {
                 c.*.position = board.posFromIndex(c.*.index) orelse blk: {
-                    std.debug.print("---------------------------- Invalid index\n", .{});
                     had_err = true;
                     break :blk c.*.position;
                 };
                 if (!had_err) {
                     c.*.index = .{ .x = board.columns, .y = board.rows };
+                    input.addLock();
                 }
             },
         }
 
-        input.lock += 1;
         return .{
             .target_index = target_index,
             .target_position = target_position,
@@ -47,10 +48,32 @@ pub const MoveCoroutine = struct {
         };
     }
 
+    fn finish(self: *MoveCoroutine) void {
+        switch (self.char) {
+            inline else => |c| {
+                if (self.target_index) |t_i| c.*.index = t_i;
+
+                c.*.position = self.target_position;
+                self.input.lock -= 1;
+                for (self.cb_routines.items) |routine| {
+                    Cor.global_runner.add(routine);
+                }
+                self.cb_routines.deinit();
+                std.heap.c_allocator.destroy(self);
+            },
+        }
+    }
+
     pub fn coroutine(self: *MoveCoroutine, dt: f32) bool {
         if (self.had_err) {
             std.debug.print("Movement out \n", .{});
-            self.input.lock -= 1;
+            return true;
+        }
+
+        self.current_time += dt;
+        if (self.current_time > self.max_time) {
+            std.debug.print("movement timeout\n", .{});
+            self.finish();
             return true;
         }
 
@@ -68,15 +91,7 @@ pub const MoveCoroutine = struct {
 
                 const delta = @abs(dx) + @abs(dy);
                 if (delta < 10.0) {
-                    if (self.target_index) |t_i| c.*.index = t_i;
-
-                    c.*.position = self.target_position;
-                    self.input.lock -= 1;
-                    for (self.cb_routines.items) |routine| {
-                        Cor.global_runner.add(routine);
-                    }
-                    self.cb_routines.deinit();
-                    std.heap.c_allocator.destroy(self);
+                    self.finish();
                     return true;
                 }
                 return false;

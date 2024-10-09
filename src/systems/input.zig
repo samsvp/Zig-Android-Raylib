@@ -14,7 +14,10 @@ const R = @import("render.zig");
 
 pub const Input = struct {
     is_move_preview: bool = false,
-    lock: i32 = 0,
+    lock_: i32 = 0,
+
+    max_lock_time: f32 = 1,
+    current_lock_time: f32 = 0,
 
     fn pointBoxCollision(point: Position, rect: C.Rectangle) bool {
         return rect.x <= point.x and
@@ -42,7 +45,7 @@ pub const Input = struct {
         if (pointBoxCollision(mouse_pos, rect)) {
             const es = tiles_attackers.arr.items[i];
             for (es.items) |e| {
-                e.sprite.tint = C.RED;
+                e.sprite.tint = C.GREEN;
             }
             var tile = board.getTile(index) orelse unreachable;
             tile.sprite.tint = C.ColorTint(tile.sprite.tint, C.BLUE);
@@ -61,10 +64,24 @@ pub const Input = struct {
         }
     }
 
+    pub fn addLock(self: *Input) void {
+        self.lock_ += 1;
+        self.current_lock_time = 0;
+    }
+
     pub fn listen(
         self: *Input,
+        dt: f32,
         globals: *Globals,
     ) void {
+        if (self.lock_ > 0) {
+            self.current_lock_time += dt;
+            if (self.current_lock_time > self.max_lock_time) {
+                self.lock_ = 0;
+                self.current_lock_time = 0;
+            }
+        }
+
         var board = globals.board;
         var player_cards = globals.player_cards;
 
@@ -77,11 +94,11 @@ pub const Input = struct {
             return;
         }
 
-        if (self.lock > 0) {
+        if (self.lock_ > 0) {
             return;
         }
-        if (self.lock < 0) {
-            exit("Double release on lock");
+        if (self.lock_ < 0) {
+            self.lock_ = 0;
         }
 
         if (C.IsKeyPressed(C.KEY_P)) {

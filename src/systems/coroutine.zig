@@ -11,6 +11,7 @@
 ///
 ///    // On your main loop, update de coroutines
 ///    Coroutine.global_runner.update(dt);
+const C = @import("../c.zig").C;
 const std = @import("std");
 
 pub var global_runner: CoroutineRunner = undefined;
