@@ -1,4 +1,4 @@
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 
 pub const PlayerKind = enum {
     PLAYER,

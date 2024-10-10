@@ -1,7 +1,7 @@
 const C = @import("../c.zig").C;
 const std = @import("std");
 
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 
 const Board = @import("../systems/board.zig").Board;
 const Character = @import("../systems/board.zig").Character;

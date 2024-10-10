@@ -3,7 +3,7 @@ const std = @import("std");
 const C = @import("../c.zig").C;
 const exit = @import("../utils.zig").exit;
 const Movement = @import("../movement.zig");
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 
 const Card = @import("../entities/card.zig");
 const Tile = @import("../entities/tile.zig").Tile;
@@ -79,6 +79,29 @@ pub const PlayerCards = struct {
         self.hand.deinit();
         self.deck.deinit();
         self.grave.deinit();
+    }
+
+    pub fn copy(self: PlayerCards, allocator: std.mem.Allocator) PlayerCards {
+        var cards = std.ArrayList(Card.Card).initCapacity(
+            allocator,
+            15,
+        ) catch unreachable;
+
+        for (self.deck.items) |c| {
+            cards.append(c) catch unreachable;
+        }
+        for (self.hand.items) |c| {
+            cards.append(c) catch unreachable;
+        }
+        for (self.grave.items) |c| {
+            cards.append(c) catch unreachable;
+        }
+        return .{
+            .sprite = self.sprite,
+            .deck = cards,
+            .hand = std.ArrayList(Card.Card).initCapacity(allocator, 3) catch unreachable,
+            .grave = std.ArrayList(Card.Card).initCapacity(allocator, 15) catch unreachable,
+        };
     }
 
     pub fn draw(self: *PlayerCards, n: usize) void {

@@ -14,7 +14,7 @@ const Input = @import("input.zig").Input;
 const render = @import("render.zig").render;
 const DamageCoroutine = @import("../coroutines/damage.zig").DamageCoroutine;
 const MoveCoroutine = @import("../coroutines/move.zig").MoveCoroutine;
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 
 const MovementFunc = *const fn (
     *Board,

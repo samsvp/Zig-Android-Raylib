@@ -7,7 +7,7 @@ const PlayerCards = @import("player_deck.zig").PlayerCards;
 const Board = @import("board.zig").Board;
 const TileAttackers = @import("board.zig").TileAttackers;
 const Movement = @import("../movement.zig");
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 const exit = @import("../utils.zig").exit;
 const Turn = @import("turn.zig");
 const R = @import("render.zig");
@@ -95,6 +95,11 @@ pub const Input = struct {
             return;
         }
 
+        const player = &(board.player orelse return);
+        if (player_cards.hand.items.len == 0 or player.mana == 0) {
+            globals.turn.change(globals);
+        }
+
         if (self.lock_ > 0) {
             return;
         }
@@ -174,8 +179,6 @@ pub const Input = struct {
             }
 
             if (!card.highlighted and !is_selected) continue;
-
-            const player = &(board.player orelse continue);
             var p_tiles = Movement.getTiles(
                 card.card_kind,
                 board,
@@ -206,9 +209,6 @@ pub const Input = struct {
                 if (!l_mouse_pressed) continue;
 
                 _ = player_cards.play(globals, tile.*);
-                if (player_cards.hand.items.len == 0 or player.mana == 0) {
-                    globals.turn.change(globals);
-                }
             }
         }
 

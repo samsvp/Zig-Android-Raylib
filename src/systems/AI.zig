@@ -4,7 +4,7 @@ const C = @import("../c.zig").C;
 const Board = @import("board.zig").Board;
 const Character = @import("board.zig").Character;
 const Input = @import("input.zig").Input;
-const Globals = @import("../globals.zig").Globals;
+const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 
 const Index = @import("../components/index.zig").Index;
 
