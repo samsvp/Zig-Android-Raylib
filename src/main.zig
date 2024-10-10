@@ -42,6 +42,10 @@ pub export fn main() void {
     var battle_globals = BS.init(
         window_w,
         window_h,
+        8,
+        6,
+        7,
+        1,
         std.heap.c_allocator,
         sprite_sheet,
         cards_sprite_sheet,
@@ -59,6 +63,10 @@ pub export fn main() void {
             battle_globals = BS.init(
                 window_w,
                 window_h,
+                8,
+                6,
+                7,
+                1,
                 std.heap.c_allocator,
                 sprite_sheet,
                 cards_sprite_sheet,

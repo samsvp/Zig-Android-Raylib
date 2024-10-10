@@ -49,6 +49,10 @@ pub const BattleGlobals = struct {
 pub fn init(
     window_w: c_int,
     window_h: c_int,
+    board_w: usize,
+    board_h: usize,
+    enemy_amount: usize,
+    queens_amount: usize,
     allocator: std.mem.Allocator,
     sprite_sheet: C.Texture,
     cards_sprite_sheet: C.Texture,
@@ -59,11 +63,13 @@ pub fn init(
 
     const board_pos = Position{ .x = 400.0 - 1.5 * 4.0 * 32.0, .y = 450.0 / 16.0 };
     var board = try allocator.create(Board);
-    board.* = Board.init(8, 6, board_pos, std.heap.c_allocator) catch {
+    board.* = Board.init(board_w, board_h, board_pos, std.heap.c_allocator) catch {
         exit("BOARD: could not create board, OOM");
         unreachable;
     };
-    board.spawnEnemies(7, 1) catch exit("BOARD: could not spawn enemies, OOM");
+    board.spawnEnemies(enemy_amount, queens_amount) catch exit(
+        "BOARD: could not spawn enemies, OOM",
+    );
     const input = try allocator.create(Input);
     input.* = Input{};
 
