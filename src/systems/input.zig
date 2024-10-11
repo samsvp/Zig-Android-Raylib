@@ -171,8 +171,7 @@ pub const Input = struct {
 
             const is_selected = i == player_cards.selected_card;
             const tint = if (is_selected) C.BLUE else C.GREEN;
-            card.*.highlighted = player_cards.selected_card < 0 and
-                pointBoxCollision(mouse_pos, dest_rect);
+            card.*.highlighted = pointBoxCollision(mouse_pos, dest_rect);
 
             if (l_mouse_pressed and card.highlighted) {
                 player_cards.selected_card = @intCast(i);
