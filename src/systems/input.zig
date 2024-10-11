@@ -9,6 +9,7 @@ const TileAttackers = @import("board.zig").TileAttackers;
 const Movement = @import("../movement.zig");
 const Globals = @import("../scenes/battle_scene.zig").BattleGlobals;
 const exit = @import("../utils.zig").exit;
+const calcScale = @import("render.zig").calcScale;
 const Turn = @import("turn.zig");
 const R = @import("render.zig");
 
@@ -18,11 +19,16 @@ pub const Input = struct {
     max_lock_time: f32 = 1,
     current_lock_time: f32 = 0,
 
-    fn pointBoxCollision(point: Position, rect: C.Rectangle) bool {
-        return rect.x <= point.x and
-            rect.x + rect.width >= point.x and
-            rect.y <= point.y and
-            rect.y + rect.height >= point.y;
+    fn pointBoxCollision(
+        point: Position,
+        rect: C.Rectangle,
+        globals: *Globals,
+    ) bool {
+        const scale = calcScale(globals.window_w, globals.window_h);
+        return rect.x * scale.x <= point.x and
+            (rect.x + rect.width) * scale.x >= point.x and
+            rect.y * scale.y <= point.y and
+            (rect.y + rect.height) * scale.y >= point.y;
     }
 
     fn checkTACollision(
@@ -31,6 +37,7 @@ pub const Input = struct {
         x: usize,
         y: usize,
         mouse_pos: Position,
+        globals: *Globals,
     ) void {
         const index = Index{ .x = x, .y = y };
         const pos = board.posFromIndex(index) orelse unreachable;
@@ -41,7 +48,7 @@ pub const Input = struct {
             .width = 32.0 * board.scale,
             .height = 32.0 * board.scale,
         };
-        if (pointBoxCollision(mouse_pos, rect)) {
+        if (pointBoxCollision(mouse_pos, rect, globals)) {
             const es = tiles_attackers.arr.items[i];
             for (es.items) |e| {
                 e.sprite.tint = C.GREEN;
@@ -55,10 +62,18 @@ pub const Input = struct {
         board: *Board,
         mouse_pos: Position,
         tiles_attackers: TileAttackers,
+        globals: *Globals,
     ) void {
         for (0..board.rows) |y| {
             for (0..board.columns) |x| {
-                checkTACollision(board, tiles_attackers, x, y, mouse_pos);
+                checkTACollision(
+                    board,
+                    tiles_attackers,
+                    x,
+                    y,
+                    mouse_pos,
+                    globals,
+                );
             }
         }
     }
@@ -107,14 +122,10 @@ pub const Input = struct {
             self.lock_ = 0;
         }
 
-        const fw: f32 = @floatFromInt(globals.window_w - R.initial_w);
-        const fh: f32 = @floatFromInt(globals.window_h - R.initial_h);
-        var mouse_pos = Position{
+        const mouse_pos = Position{
             .x = @floatFromInt(C.GetMouseX()),
             .y = @floatFromInt(C.GetMouseY()),
         };
-        mouse_pos.x -= 0.5 * fw;
-        mouse_pos.y -= 0.5 * fh;
 
         const l_mouse_pressed = C.IsMouseButtonPressed(C.MOUSE_BUTTON_LEFT);
 
@@ -124,7 +135,7 @@ pub const Input = struct {
             .width = 48.0,
             .height = 48.0,
         };
-        if (pointBoxCollision(mouse_pos, back_button_rect)) {
+        if (pointBoxCollision(mouse_pos, back_button_rect, globals)) {
             globals.back_button.tint = C.LIGHTGRAY;
             if (l_mouse_pressed and player_cards.selected_card > -1) {
                 player_cards.selected_card = -1;
@@ -139,7 +150,7 @@ pub const Input = struct {
             .width = 48.0,
             .height = 48.0,
         };
-        if (pointBoxCollision(mouse_pos, end_button_rect)) {
+        if (pointBoxCollision(mouse_pos, end_button_rect, globals)) {
             globals.end_button.tint = C.LIGHTGRAY;
             if (l_mouse_pressed and
                 globals.turn.player_kind == Turn.PlayerKind.PLAYER)
@@ -153,7 +164,7 @@ pub const Input = struct {
         var tiles_attackers = board.calculateTilesAttackers(
             std.heap.c_allocator,
         ) catch unreachable;
-        mouseTileCollision(board, mouse_pos, tiles_attackers);
+        mouseTileCollision(board, mouse_pos, tiles_attackers, globals);
         tiles_attackers.deinit();
 
         var i: i32 = @intCast(player_cards.hand.items.len - 1);
@@ -171,7 +182,7 @@ pub const Input = struct {
 
             const is_selected = i == player_cards.selected_card;
             const tint = if (is_selected) C.BLUE else C.GREEN;
-            card.*.highlighted = pointBoxCollision(mouse_pos, dest_rect);
+            card.*.highlighted = pointBoxCollision(mouse_pos, dest_rect, globals);
 
             if (l_mouse_pressed and card.highlighted) {
                 player_cards.selected_card = @intCast(i);
@@ -199,7 +210,7 @@ pub const Input = struct {
                     .height = 32.0 * board.scale,
                 };
 
-                if (!pointBoxCollision(mouse_pos, rect)) {
+                if (!pointBoxCollision(mouse_pos, rect, globals)) {
                     continue;
                 }
 
