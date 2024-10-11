@@ -44,8 +44,8 @@ pub export fn main() void {
         window_h,
         8,
         6,
-        7,
-        1,
+        10,
+        2,
         std.heap.c_allocator,
         sprite_sheet,
         cards_sprite_sheet,
@@ -60,18 +60,21 @@ pub export fn main() void {
             player_cards.deinit();
             player_cards = og_player_cards.copy(std.heap.c_allocator);
 
-            battle_globals = BS.init(
+            const new_battle_globals = BS.init(
                 window_w,
                 window_h,
                 8,
                 6,
-                7,
-                1,
+                10,
+                2,
                 std.heap.c_allocator,
                 sprite_sheet,
                 cards_sprite_sheet,
                 &player_cards,
             ) catch unreachable;
+            new_battle_globals.window_h = battle_globals.window_h;
+            new_battle_globals.window_w = battle_globals.window_w;
+            battle_globals = new_battle_globals;
         }
 
         const dt = C.GetFrameTime();

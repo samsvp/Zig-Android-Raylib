@@ -38,6 +38,12 @@ pub const AI = struct {
         var tiles = enemy.movementFunc(board, enemy.index, std.heap.c_allocator);
         defer tiles.deinit();
 
+        if (tiles.items.len == 0) {
+            std.debug.print("Dead enemy\n", .{});
+            enemy.*.health = 0;
+            return;
+        }
+
         if (board.player) |player| for (tiles.items) |tile| {
             if (tile.index.equals(player.index)) {
                 board.enemyMoveTo(enemy_i, tile.index, globals);

@@ -362,7 +362,7 @@ pub const Board = struct {
         return null;
     }
 
-    pub fn getCharacterInTile(self: Board, tile: Tile) ?Character {
+    pub fn getCharacterInTile(self: *Board, tile: Tile) ?Character {
         const index = tile.index;
         return self.getCharacterAtIndex(index);
     }
@@ -373,6 +373,7 @@ pub const Board = struct {
         sprite_sheet: C.Texture,
         window_w: c_int,
         window_h: c_int,
+        tint: C.Color,
     ) void {
         if (enemy.health <= 0) return;
 
@@ -382,7 +383,7 @@ pub const Board = struct {
         for (tiles.items) |tile| {
             const sprite = Sprite{
                 .scale = 1.5,
-                .tint = C.WHITE,
+                .tint = tint,
                 .frame_rect = C.Rectangle{
                     .x = 32.0,
                     .y = 128.0,

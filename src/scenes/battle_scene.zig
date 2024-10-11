@@ -218,7 +218,13 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
     globals.input.update(dt);
 
     for (board.enemies.items) |e| {
-        board.previewMoves(e.*, globals.sprite_sheet, globals.window_w, globals.window_h);
+        board.previewMoves(
+            e.*,
+            globals.sprite_sheet,
+            globals.window_w,
+            globals.window_h,
+            C.WHITE,
+        );
     }
 
     if (globals.player_cards.selected_card > -1) {

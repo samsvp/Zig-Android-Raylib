@@ -55,6 +55,20 @@ pub const Input = struct {
             }
             var tile = board.getTile(index) orelse unreachable;
             tile.sprite.tint = C.ColorTint(tile.sprite.tint, C.BLUE);
+
+            const char = board.getCharacterInTile(tile.*) orelse return;
+            switch (char) {
+                .player => {},
+                .enemy => |e| {
+                    board.previewMoves(
+                        e.*,
+                        globals.sprite_sheet,
+                        globals.window_w,
+                        globals.window_h,
+                        C.BLUE,
+                    );
+                },
+            }
         }
     }
 
@@ -109,6 +123,9 @@ pub const Input = struct {
         if (globals.turn.player_kind == Turn.PlayerKind.COMP) {
             return;
         }
+        if (C.IsKeyPressed(C.KEY_E)) {
+            globals.turn.change(globals);
+        }
 
         const player = &(board.player orelse return);
         if (player_cards.hand.items.len == 0 or player.mana == 0) {
@@ -150,6 +167,7 @@ pub const Input = struct {
             .width = 48.0,
             .height = 48.0,
         };
+
         if (pointBoxCollision(mouse_pos, end_button_rect, globals)) {
             globals.end_button.tint = C.LIGHTGRAY;
             if (l_mouse_pressed and
