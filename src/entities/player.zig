@@ -20,9 +20,9 @@ pub const Player = struct {
     ) Player {
         const frame_rect = C.Rectangle{
             .x = 0,
-            .y = 0,
+            .y = 48.0,
             .width = 32.0,
-            .height = 32.0,
+            .height = 48.0,
         };
 
         return .{

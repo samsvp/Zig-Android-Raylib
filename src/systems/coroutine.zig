@@ -77,13 +77,12 @@ pub const CoroutineRunner = struct {
     }
 
     pub fn update(self: *CoroutineRunner, dt: f32) void {
-        var i: usize = 0;
-        while (i < self.coroutines.items.len) {
+        var i: usize = self.coroutines.items.len;
+        while (i > 0) {
+            i -= 1;
             const finished = self.coroutines.items[i].coroutine(dt);
             if (finished) {
                 _ = self.coroutines.swapRemove(i);
-            } else {
-                i += 1;
             }
         }
     }

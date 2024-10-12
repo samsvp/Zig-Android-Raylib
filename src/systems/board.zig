@@ -96,7 +96,7 @@ pub const Board = struct {
             .rows = rows,
             .tiles = tiles,
             .enemies = std.ArrayList(*Enemy).init(allocator),
-            .player = Player.init(5, player_index, scale),
+            .player = Player.init(5, player_index, 1.25),
             .pos = pos,
             .scale = scale,
             .allocator = allocator,
@@ -132,7 +132,14 @@ pub const Board = struct {
                 inline else => |c| if (self.posFromIndex(c.index)) |_| {
                     const move_cr = Cor.Coroutine.make(
                         MoveCoroutine,
-                        .{ self, target_i, self.posFromIndex(target_i).?, char, cb_routines, input },
+                        .{
+                            self,
+                            target_i,
+                            self.posFromIndex(target_i).?,
+                            char,
+                            cb_routines,
+                            input,
+                        },
                     );
                     Cor.global_runner.add(move_cr);
                 },
@@ -306,21 +313,22 @@ pub const Board = struct {
             );
             const enemy = try std.heap.c_allocator.create(Enemy);
             const scale = 1.25;
+            const health = 2;
             switch (enemy_kind) {
                 EnemyKinds.TOWER => {
-                    enemy.* = Enemy.init(3, .{ .x = 0, .y = 0 }, scale, Movement.tower);
+                    enemy.* = Enemy.init(health, .{ .x = 0, .y = 0 }, scale, Movement.tower);
                     try self.addEnemy(enemy, index);
                 },
                 EnemyKinds.BISHOP => {
-                    enemy.* = Enemy.init(3, .{ .x = 1, .y = 0 }, scale, Movement.bishop);
+                    enemy.* = Enemy.init(health, .{ .x = 1, .y = 0 }, scale, Movement.bishop);
                     try self.addEnemy(enemy, index);
                 },
                 EnemyKinds.KNIGHT => {
-                    enemy.* = Enemy.init(3, .{ .x = 2, .y = 0 }, scale, Movement.knight);
+                    enemy.* = Enemy.init(health, .{ .x = 2, .y = 0 }, scale, Movement.knight);
                     try self.addEnemy(enemy, index);
                 },
                 EnemyKinds.QUEEN => {
-                    enemy.* = Enemy.init(3, .{ .x = 3, .y = 0 }, scale, Movement.queen);
+                    enemy.* = Enemy.init(health, .{ .x = 3, .y = 0 }, scale, Movement.queen);
                     try self.addEnemy(enemy, index);
                     current_queens += 1;
                 },

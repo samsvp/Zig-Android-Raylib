@@ -31,12 +31,28 @@ pub const MoveCoroutine = struct {
                     had_err = true;
                     break :blk c.*.position;
                 };
+                const diff =
+                    @abs(c.position.x - target_position.x) +
+                    @abs(c.position.y - target_position.y);
+                if (diff < 1.0) {
+                    had_err = true;
+                    std.debug.print("out, diff is {d}\n", .{diff});
+                }
+                const pos = c.position;
+                std.debug.print("target: {d}, {d}; pos {d}, {d}, diff: {d}\n", .{
+                    target_position.x,
+                    target_position.y,
+                    pos.x,
+                    pos.y,
+                    diff,
+                });
                 if (!had_err) {
                     c.*.index = .{ .x = board.columns, .y = board.rows };
                     input.addLock();
                 }
             },
         }
+        std.debug.print("had err? = {}\n", .{had_err});
 
         return .{
             .target_index = target_index,
@@ -48,25 +64,29 @@ pub const MoveCoroutine = struct {
         };
     }
 
+    fn deinit(self: *MoveCoroutine) void {
+        for (self.cb_routines.items) |routine| {
+            Cor.global_runner.add(routine);
+        }
+        self.cb_routines.deinit();
+        std.heap.c_allocator.destroy(self);
+    }
+
     fn finish(self: *MoveCoroutine) void {
+        self.input.lock_ -= 1;
         switch (self.char) {
             inline else => |c| {
                 if (self.target_index) |t_i| c.*.index = t_i;
 
                 c.*.position = self.target_position;
-                self.input.lock_ -= 1;
-                for (self.cb_routines.items) |routine| {
-                    Cor.global_runner.add(routine);
-                }
-                self.cb_routines.deinit();
-                std.heap.c_allocator.destroy(self);
+                self.deinit();
             },
         }
     }
 
     pub fn coroutine(self: *MoveCoroutine, dt: f32) bool {
         if (self.had_err) {
-            std.debug.print("Movement out \n", .{});
+            self.deinit();
             return true;
         }
 

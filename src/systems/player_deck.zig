@@ -96,6 +96,7 @@ pub const PlayerCards = struct {
         for (self.grave.items) |c| {
             cards.append(c) catch unreachable;
         }
+        Random.shuffle(Card.Card, cards.items);
         return .{
             .sprite = self.sprite,
             .deck = cards,

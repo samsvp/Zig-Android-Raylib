@@ -15,6 +15,13 @@ const Sprite = @import("../components/sprite.zig").Sprite;
 
 const N = 75;
 
+const N_COLORS = 3;
+const colors = [N_COLORS]C.Color{
+    .{ .r = 196, .g = 36, .b = 48, .a = 255 },
+    .{ .r = 90, .g = 197, .b = 79, .a = 255 },
+    .{ .r = 0, .g = 105, .b = 170, .a = 255 },
+};
+
 pub const DamageCoroutine = struct {
     texture: C.Texture,
     blood_scales: [N]f32,
@@ -112,7 +119,7 @@ pub const DamageCoroutine = struct {
                 self.pos[i].y += (self.vel[i].y + old_vel.y) / 2.0 * dt;
             }
 
-            const mod = i % 3;
+            const mod = i % N_COLORS;
             render(
                 self.globals.window_w,
                 self.globals.window_h,
@@ -121,12 +128,7 @@ pub const DamageCoroutine = struct {
                 .{
                     .scale = self.blood_scales[i],
                     .frame_rect = self.frame_rect,
-                    .tint = .{
-                        .r = 255 * @as(u8, @intFromBool(mod == 0)),
-                        .g = 255 * @as(u8, @intFromBool(mod == 1)),
-                        .b = 255 * @as(u8, @intFromBool(mod == 2)),
-                        .a = @intFromFloat(255.0 * (1.0 - self.lifetime / self.max_lifetime)),
-                    },
+                    .tint = colors[mod],
                 },
             );
         };
