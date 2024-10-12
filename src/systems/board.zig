@@ -305,23 +305,24 @@ pub const Board = struct {
                 C.GetRandomValue(0, max),
             );
             const enemy = try std.heap.c_allocator.create(Enemy);
+            const scale = 1.25;
             switch (enemy_kind) {
-                EnemyKinds.QUEEN => {
-                    enemy.* = Enemy.init(3, .{ .x = 2, .y = 2 }, 1.5, Movement.queen);
-                    try self.addEnemy(enemy, index);
-                    current_queens += 1;
-                },
                 EnemyKinds.TOWER => {
-                    enemy.* = Enemy.init(3, .{ .x = 2, .y = 1 }, 1.5, Movement.tower);
+                    enemy.* = Enemy.init(3, .{ .x = 0, .y = 0 }, scale, Movement.tower);
                     try self.addEnemy(enemy, index);
                 },
                 EnemyKinds.BISHOP => {
-                    enemy.* = Enemy.init(3, .{ .x = 0, .y = 2 }, 1.5, Movement.bishop);
+                    enemy.* = Enemy.init(3, .{ .x = 1, .y = 0 }, scale, Movement.bishop);
                     try self.addEnemy(enemy, index);
                 },
                 EnemyKinds.KNIGHT => {
-                    enemy.* = Enemy.init(3, .{ .x = 0, .y = 1 }, 1.5, Movement.knight);
+                    enemy.* = Enemy.init(3, .{ .x = 2, .y = 0 }, scale, Movement.knight);
                     try self.addEnemy(enemy, index);
+                },
+                EnemyKinds.QUEEN => {
+                    enemy.* = Enemy.init(3, .{ .x = 3, .y = 0 }, scale, Movement.queen);
+                    try self.addEnemy(enemy, index);
+                    current_queens += 1;
                 },
             }
         }

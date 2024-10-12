@@ -6,6 +6,7 @@ const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
 const AI = @import("../systems/AI.zig").AI;
 const Board = @import("../systems/board.zig").Board;
+const Character = @import("../systems/board.zig").Character;
 const Input = @import("../systems/input.zig").Input;
 const Turn = @import("../systems/turn.zig");
 const Coroutine = @import("../systems/coroutine.zig");
@@ -24,6 +25,7 @@ pub const BattleGlobals = struct {
     window_h: c_int,
 
     sprite_sheet: C.Texture2D,
+    pieces_sheet: C.Texture,
     cards_sprite_sheet: C.Texture2D,
 
     heart_sprite: Sprite,
@@ -55,6 +57,7 @@ pub fn init(
     queens_amount: usize,
     allocator: std.mem.Allocator,
     sprite_sheet: C.Texture,
+    pieces_sheet: C.Texture,
     cards_sprite_sheet: C.Texture,
     player_cards: *PlayerCards,
 ) !*BattleGlobals {
@@ -152,6 +155,7 @@ pub fn init(
         .end_button_position = end_turn_button_pos,
 
         .sprite_sheet = sprite_sheet,
+        .pieces_sheet = pieces_sheet,
         .cards_sprite_sheet = cards_sprite_sheet,
         .turn = turn,
         .board = board,
@@ -171,6 +175,16 @@ pub fn deinit(bg: *BattleGlobals) void {
     bg.allocator.destroy(bg.input);
     bg.allocator.destroy(bg.back_button);
     bg.allocator.destroy(bg.end_button);
+}
+
+fn sortCharacters(_: void, c1: Character, c2: Character) bool {
+    const y1 = switch (c1) {
+        inline else => |c| c.index.y,
+    };
+    const y2 = switch (c2) {
+        inline else => |c| c.index.y,
+    };
+    return y1 < y2;
 }
 
 pub fn update(globals: *BattleGlobals, dt: f32) void {
@@ -245,29 +259,39 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
         globals.end_button.*,
     );
 
+    var characters_to_draw = std.ArrayList(Character).initCapacity(
+        std.heap.c_allocator,
+        board.enemies.items.len + 1,
+    ) catch unreachable;
+    defer characters_to_draw.deinit();
     for (board.enemies.items) |e| {
-        if (e.health <= 0) continue;
+        characters_to_draw.appendAssumeCapacity(.{ .enemy = e });
+    }
+    if (board.player) |*p| {
+        characters_to_draw.appendAssumeCapacity(.{ .player = p });
+    }
 
-        const pos = board.posFromIndex(e.index) orelse e.position;
-        render(
-            globals.window_w,
-            globals.window_h,
-            globals.sprite_sheet,
-            pos,
-            e.sprite,
-        );
+    std.mem.sort(Character, characters_to_draw.items, {}, sortCharacters);
+    for (characters_to_draw.items) |char| {
+        switch (char) {
+            inline else => |c| {
+                if (c.health <= 0) continue;
+
+                var pos = board.posFromIndex(c.index) orelse c.position;
+                pos.x += 4.0;
+                pos.y -= 24.0;
+                render(
+                    globals.window_w,
+                    globals.window_h,
+                    globals.pieces_sheet,
+                    pos,
+                    c.sprite,
+                );
+            },
+        }
     }
 
     if (board.player) |player| if (player.health > 0) {
-        const pos = board.posFromIndex(player.index) orelse player.position;
-        render(
-            globals.window_w,
-            globals.window_h,
-            globals.sprite_sheet,
-            pos,
-            player.sprite,
-        );
-
         for (0..@intCast(player.health)) |i| {
             const heart_pos = Position{
                 .x = @floatFromInt(16 * i + w / 4),

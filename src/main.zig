@@ -22,6 +22,12 @@ pub export fn main() void {
         exit("FILEIO: Could not load spritesheet");
     }
 
+    const pieces_sheet = C.LoadTexture("pieces.png");
+    defer C.UnloadTexture(pieces_sheet);
+    if (pieces_sheet.id <= 0) {
+        exit("FILEIO: Could not load spritesheet");
+    }
+
     const cards_sprite_sheet = C.LoadTexture("card-sprites.png");
     defer C.UnloadTexture(cards_sprite_sheet);
     if (sprite_sheet.id <= 0) {
@@ -48,6 +54,7 @@ pub export fn main() void {
         2,
         std.heap.c_allocator,
         sprite_sheet,
+        pieces_sheet,
         cards_sprite_sheet,
         &player_cards,
     ) catch unreachable;
@@ -69,6 +76,7 @@ pub export fn main() void {
                 2,
                 std.heap.c_allocator,
                 sprite_sheet,
+                pieces_sheet,
                 cards_sprite_sheet,
                 &player_cards,
             ) catch unreachable;
