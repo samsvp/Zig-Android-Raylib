@@ -2,9 +2,18 @@ const std = @import("std");
 
 const C = @import("c.zig").C;
 const BS = @import("scenes/battle_scene.zig");
+const Sprite = @import("components/sprite.zig").Sprite;
 
 const PlayerCards = @import("systems/player_deck.zig").PlayerCards;
 const exit = @import("utils.zig").exit;
+
+fn loadSheet(name: [*c]const u8) C.Texture {
+    const sprite_sheet = C.LoadTexture(name);
+    if (sprite_sheet.id <= 0) {
+        exit("FILEIO: Could not load spritesheet");
+    }
+    return sprite_sheet;
+}
 
 pub export fn main() void {
     const window_w = 800;
@@ -16,23 +25,17 @@ pub export fn main() void {
     // save everything into assets
     _ = C.ChangeDirectory("assets");
 
-    const sprite_sheet = C.LoadTexture("sprites.png");
+    const sprite_sheet = loadSheet("sprites.png");
     defer C.UnloadTexture(sprite_sheet);
-    if (sprite_sheet.id <= 0) {
-        exit("FILEIO: Could not load spritesheet");
-    }
 
-    const pieces_sheet = C.LoadTexture("pieces.png");
+    const pieces_sheet = loadSheet("pieces.png");
     defer C.UnloadTexture(pieces_sheet);
-    if (pieces_sheet.id <= 0) {
-        exit("FILEIO: Could not load spritesheet");
-    }
 
-    const cards_sprite_sheet = C.LoadTexture("card-sprites.png");
+    const cloud_texture = loadSheet("cloud.png");
+    defer C.UnloadTexture(pieces_sheet);
+
+    const cards_sprite_sheet = loadSheet("card-sprites.png");
     defer C.UnloadTexture(cards_sprite_sheet);
-    if (sprite_sheet.id <= 0) {
-        exit("FILEIO: Could not load cards spritesheet");
-    }
 
     var og_player_cards = PlayerCards.init(0, 1.5, "base_deck.txt", std.heap.c_allocator);
     defer og_player_cards.deinit();
@@ -41,6 +44,12 @@ pub export fn main() void {
     defer player_cards.deinit();
 
     _ = C.ChangeDirectory("..");
+
+    const cloud_sprite = Sprite{
+        .frame_rect = .{ .x = 0, .y = 0, .width = 64, .height = 48 },
+        .scale = 3.0,
+        .tint = C.WHITE,
+    };
     // end load assets
     // const score = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_SCORE));
     // const hiscore = Save.LoadStorageValue(@intFromEnum(Save.StorageData.POSITION_HISCORE));
@@ -56,6 +65,8 @@ pub export fn main() void {
         sprite_sheet,
         pieces_sheet,
         cards_sprite_sheet,
+        cloud_sprite,
+        cloud_texture,
         &player_cards,
     ) catch unreachable;
     defer BS.deinit(battle_globals);
@@ -78,6 +89,8 @@ pub export fn main() void {
                 sprite_sheet,
                 pieces_sheet,
                 cards_sprite_sheet,
+                cloud_sprite,
+                cloud_texture,
                 &player_cards,
             ) catch unreachable;
             new_battle_globals.window_h = battle_globals.window_h;

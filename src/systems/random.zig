@@ -76,6 +76,10 @@ pub const Random = struct {
         self.weights.deinit();
     }
 
+    pub fn int(comptime T: type, min: c_int, max: c_int) T {
+        return @intCast(C.GetRandomValue(min, max));
+    }
+
     /// Returns a random float between [0, 1).
     pub fn float() f32 {
         const f: f32 = @floatFromInt(C.GetRandomValue(0, 999));

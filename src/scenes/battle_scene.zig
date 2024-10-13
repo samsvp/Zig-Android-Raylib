@@ -9,6 +9,7 @@ const Board = @import("../systems/board.zig").Board;
 const Character = @import("../systems/board.zig").Character;
 const Input = @import("../systems/input.zig").Input;
 const Turn = @import("../systems/turn.zig");
+const Clouds = @import("../systems/clouds.zig").Clouds;
 const Coroutine = @import("../systems/coroutine.zig");
 const CoroutineRunner = @import("../systems/coroutine.zig").CoroutineRunner;
 
@@ -43,6 +44,7 @@ pub const BattleGlobals = struct {
     board: *Board,
     input: *Input,
     coroutine_runner: *CoroutineRunner,
+    clouds: *Clouds,
 
     allocator: std.mem.Allocator,
     current_enemy_idx: usize = 0,
@@ -59,6 +61,8 @@ pub fn init(
     sprite_sheet: C.Texture,
     pieces_sheet: C.Texture,
     cards_sprite_sheet: C.Texture,
+    cloud_sprite: Sprite,
+    cloud_texture: C.Texture,
     player_cards: *PlayerCards,
 ) !*BattleGlobals {
     player_cards.draw(3);
@@ -78,6 +82,12 @@ pub fn init(
 
     const turn = try allocator.create(Turn.Turn);
     turn.* = Turn.Turn{ .current = 1, .player_kind = Turn.PlayerKind.PLAYER };
+
+    const clouds = try allocator.create(Clouds);
+    clouds.* = Clouds{
+        .sprite = cloud_sprite,
+        .cloud_texture = cloud_texture,
+    };
 
     Coroutine.global_runner = Coroutine.CoroutineRunner.init(std.heap.c_allocator);
 
@@ -161,6 +171,7 @@ pub fn init(
         .board = board,
         .player_cards = player_cards,
         .input = input,
+        .clouds = clouds,
         .coroutine_runner = &Coroutine.global_runner,
 
         .allocator = allocator,
@@ -175,6 +186,7 @@ pub fn deinit(bg: *BattleGlobals) void {
     bg.allocator.destroy(bg.input);
     bg.allocator.destroy(bg.back_button);
     bg.allocator.destroy(bg.end_button);
+    bg.allocator.destroy(bg.clouds);
 }
 
 fn sortCharacters(_: void, c1: Character, c2: Character) bool {
@@ -209,6 +221,21 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
     defer C.EndDrawing();
 
     C.ClearBackground(C.BLACK);
+    C.DrawRectangleGradientV(
+        0,
+        0,
+        globals.window_w + 100,
+        globals.window_h + 100,
+        .{ .r = 0, .g = 105, .b = 170, .a = 255 },
+        .{ .r = 148, .g = 253, .b = 255, .a = 255 },
+    );
+    globals.clouds.update(
+        globals.window_w,
+        globals.window_h,
+        globals.init_window_w,
+        globals.init_window_h,
+        dt,
+    );
 
     const board = globals.board;
     const turn = globals.turn;
