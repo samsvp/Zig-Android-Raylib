@@ -27,6 +27,8 @@ pub const BattleGlobals = struct {
 
     sprite_sheet: C.Texture2D,
     pieces_sheet: C.Texture,
+    floor_sheet: C.Texture,
+    tree_sheet: C.Texture,
     cards_sprite_sheet: C.Texture2D,
 
     heart_sprite: Sprite,
@@ -60,6 +62,8 @@ pub fn init(
     allocator: std.mem.Allocator,
     sprite_sheet: C.Texture,
     pieces_sheet: C.Texture,
+    floor_sheet: C.Texture,
+    tree_sheet: C.Texture,
     cards_sprite_sheet: C.Texture,
     cloud_sprite: Sprite,
     cloud_texture: C.Texture,
@@ -166,6 +170,8 @@ pub fn init(
 
         .sprite_sheet = sprite_sheet,
         .pieces_sheet = pieces_sheet,
+        .floor_sheet = floor_sheet,
+        .tree_sheet = tree_sheet,
         .cards_sprite_sheet = cards_sprite_sheet,
         .turn = turn,
         .board = board,
@@ -242,6 +248,15 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
     const w: usize = @intCast(globals.init_window_w);
     const h: usize = @intCast(globals.init_window_h);
 
+    for (board.floor.items) |tile| {
+        render(
+            globals.window_w,
+            globals.window_h,
+            globals.floor_sheet,
+            tile.pos,
+            tile.sprite,
+        );
+    }
     for (board.tiles.items) |tile| {
         render(
             globals.window_w,
@@ -321,7 +336,7 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
     if (board.player) |player| if (player.health > 0) {
         for (0..@intCast(player.health)) |i| {
             const heart_pos = Position{
-                .x = @floatFromInt(16 * i + w / 4),
+                .x = @floatFromInt(8 * i + w / 6),
                 .y = @floatFromInt(2 * h / 3 + 22),
             };
             render(
@@ -335,7 +350,7 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
 
         if (turn.player_kind == Turn.PlayerKind.PLAYER) for (0..@intCast(player.mana)) |i| {
             const mana_pos = Position{
-                .x = @floatFromInt(16 * i + 2 * w / 3),
+                .x = @floatFromInt(16 * i + 27 * w / 37),
                 .y = @floatFromInt(2 * h / 3 + 22),
             };
             render(

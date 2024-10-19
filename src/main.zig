@@ -34,6 +34,12 @@ pub export fn main() void {
     const cloud_texture = loadSheet("cloud.png");
     defer C.UnloadTexture(pieces_sheet);
 
+    const floor_texture = loadSheet("floors.png");
+    defer C.UnloadTexture(floor_texture);
+
+    const tree_texture = loadSheet("trees.png");
+    defer C.UnloadTexture(tree_texture);
+
     const cards_sprite_sheet = loadSheet("card-sprites.png");
     defer C.UnloadTexture(cards_sprite_sheet);
 
@@ -64,6 +70,8 @@ pub export fn main() void {
         std.heap.c_allocator,
         sprite_sheet,
         pieces_sheet,
+        floor_texture,
+        tree_texture,
         cards_sprite_sheet,
         cloud_sprite,
         cloud_texture,
@@ -88,6 +96,8 @@ pub export fn main() void {
                 std.heap.c_allocator,
                 sprite_sheet,
                 pieces_sheet,
+                floor_texture,
+                tree_texture,
                 cards_sprite_sheet,
                 cloud_sprite,
                 cloud_texture,

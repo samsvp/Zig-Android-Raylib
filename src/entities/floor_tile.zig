@@ -3,31 +3,31 @@ const C = @import("../c.zig").C;
 const Index = @import("../components/index.zig").Index;
 const Position = @import("../components/position.zig").Position;
 const Sprite = @import("../components/sprite.zig").Sprite;
+const posFromVec2 = @import("tile.zig").posFromVec2;
 
-pub fn posFromVec2(p: C.Vector2, offset: Position, scale: f32) Position {
-    return .{
-        .x = p.x * 32.0 * scale + offset.x,
-        .y = p.y * 32.0 * scale + offset.y,
-    };
-}
-
-pub const Tile = struct {
-    index: Index,
+pub const FloorTile = struct {
     pos: Position,
     sprite: Sprite,
 
-    pub fn init(index: Index, offset: Position, scale: f32) Tile {
-        const frame_rect = if ((index.x + index.y) % 2 == 0)
+    pub fn init(index: Index, columns: u64, offset: Position, scale: f32) FloorTile {
+        const frame_rect = if (index.x == 0)
+            C.Rectangle{
+                .x = 0.0,
+                .y = 128.0,
+                .width = 32.0,
+                .height = 32.0,
+            }
+        else if (index.x == columns - 1)
             C.Rectangle{
                 .x = 64.0,
-                .y = 96.0,
+                .y = 128.0,
                 .width = 32.0,
                 .height = 32.0,
             }
         else
             C.Rectangle{
-                .x = 96.0,
-                .y = 96.0,
+                .x = 32.0,
+                .y = 128.0,
                 .width = 32.0,
                 .height = 32.0,
             };
@@ -38,7 +38,6 @@ pub const Tile = struct {
         };
 
         return .{
-            .index = index,
             .pos = posFromVec2(p, offset, scale),
             .sprite = .{
                 .scale = scale,

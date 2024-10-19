@@ -9,6 +9,7 @@ const Enemy = @import("../entities/enemy.zig").Enemy;
 const Player = @import("../entities/player.zig").Player;
 const Sprite = @import("../components/sprite.zig").Sprite;
 const Tile = @import("../entities/tile.zig").Tile;
+const FloorTile = @import("../entities/floor_tile.zig").FloorTile;
 const Cor = @import("coroutine.zig");
 const Input = @import("input.zig").Input;
 const render = @import("render.zig").render;
@@ -63,6 +64,7 @@ pub const Board = struct {
     columns: usize,
     rows: usize,
     tiles: std.ArrayList(Tile),
+    floor: std.ArrayList(FloorTile),
     enemies: std.ArrayList(*Enemy),
     player: ?Player,
     scale: f32,
@@ -81,12 +83,15 @@ pub const Board = struct {
             allocator,
             columns * rows,
         );
+        var floor = try std.ArrayList(FloorTile).initCapacity(allocator, columns);
 
         for (0..columns) |x| {
             for (0..rows) |y| {
                 const tile = Tile.init(.{ .x = x, .y = y }, pos, scale);
                 tiles.appendAssumeCapacity(tile);
             }
+            const floor_tile = FloorTile.init(.{ .x = x, .y = rows }, columns, pos, scale);
+            floor.appendAssumeCapacity(floor_tile);
         }
 
         const player_index = .{ .x = columns / 2, .y = rows - 1 };
@@ -95,6 +100,7 @@ pub const Board = struct {
             .columns = columns,
             .rows = rows,
             .tiles = tiles,
+            .floor = floor,
             .enemies = std.ArrayList(*Enemy).init(allocator),
             .player = Player.init(5, player_index, 1.25),
             .pos = pos,
@@ -105,6 +111,7 @@ pub const Board = struct {
 
     pub fn deinit(self: *Board) void {
         self.tiles.deinit();
+        self.floor.deinit();
         for (self.enemies.items) |e| {
             std.heap.c_allocator.destroy(e);
         }
