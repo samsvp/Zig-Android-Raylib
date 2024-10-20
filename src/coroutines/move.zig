@@ -36,16 +36,7 @@ pub const MoveCoroutine = struct {
                     @abs(c.position.y - target_position.y);
                 if (diff < 1.0) {
                     had_err = true;
-                    std.debug.print("out, diff is {d}\n", .{diff});
                 }
-                const pos = c.position;
-                std.debug.print("target: {d}, {d}; pos {d}, {d}, diff: {d}\n", .{
-                    target_position.x,
-                    target_position.y,
-                    pos.x,
-                    pos.y,
-                    diff,
-                });
                 if (!had_err) {
                     c.*.index = .{ .x = board.columns, .y = board.rows };
                     input.addLock();
