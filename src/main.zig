@@ -18,6 +18,10 @@ fn loadSheet(name: [*c]const u8) C.Texture {
 pub export fn main() void {
     const window_w = 800;
     const window_h = 450;
+    C.TraceLog(
+        C.LOG_ERROR,
+        "raylib hello!\n",
+    );
     C.InitWindow(window_w, window_h, "raylib [core] example - basic window");
     defer C.CloseWindow();
 

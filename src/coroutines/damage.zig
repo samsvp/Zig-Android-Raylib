@@ -140,7 +140,7 @@ pub const DamageCoroutine = struct {
         }
 
         if (self.lifetime <= 0.5) {
-            if (@mod(std.math.round(self.lifetime * 10.0), 2.0) == 0) {
+            if (@mod(@round(self.lifetime * 10.0), 2.0) == 0) {
                 switch (self.char) {
                     inline else => |*c| c.*.sprite.tint = C.RED,
                 }

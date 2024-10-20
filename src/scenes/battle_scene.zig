@@ -10,6 +10,7 @@ const Character = @import("../systems/board.zig").Character;
 const Input = @import("../systems/input.zig").Input;
 const Turn = @import("../systems/turn.zig");
 const Clouds = @import("../systems/clouds.zig").Clouds;
+const Trees = @import("../systems/trees.zig").Trees;
 const Coroutine = @import("../systems/coroutine.zig");
 const CoroutineRunner = @import("../systems/coroutine.zig").CoroutineRunner;
 
@@ -47,6 +48,7 @@ pub const BattleGlobals = struct {
     input: *Input,
     coroutine_runner: *CoroutineRunner,
     clouds: *Clouds,
+    trees: *Trees,
 
     allocator: std.mem.Allocator,
     current_enemy_idx: usize = 0,
@@ -92,6 +94,9 @@ pub fn init(
         .sprite = cloud_sprite,
         .cloud_texture = cloud_texture,
     };
+
+    const trees = try allocator.create(Trees);
+    trees.* = try Trees.init(std.heap.c_allocator, window_w, window_h, 6, .GREEN);
 
     Coroutine.global_runner = Coroutine.CoroutineRunner.init(std.heap.c_allocator);
 
@@ -178,6 +183,7 @@ pub fn init(
         .player_cards = player_cards,
         .input = input,
         .clouds = clouds,
+        .trees = trees,
         .coroutine_runner = &Coroutine.global_runner,
 
         .allocator = allocator,
@@ -193,6 +199,8 @@ pub fn deinit(bg: *BattleGlobals) void {
     bg.allocator.destroy(bg.back_button);
     bg.allocator.destroy(bg.end_button);
     bg.allocator.destroy(bg.clouds);
+    bg.trees.deinit();
+    bg.allocator.destroy(bg.trees);
 }
 
 fn sortCharacters(_: void, c1: Character, c2: Character) bool {
@@ -235,6 +243,15 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
         .{ .r = 0, .g = 105, .b = 170, .a = 255 },
         .{ .r = 148, .g = 253, .b = 255, .a = 255 },
     );
+
+    globals.trees.update(
+        globals.window_w,
+        globals.window_h,
+        globals.tree_sheet,
+        globals.floor_sheet,
+        dt,
+    );
+
     globals.clouds.update(
         globals.window_w,
         globals.window_h,
@@ -242,7 +259,6 @@ pub fn update(globals: *BattleGlobals, dt: f32) void {
         globals.init_window_h,
         dt,
     );
-
     const board = globals.board;
     const turn = globals.turn;
     const w: usize = @intCast(globals.init_window_w);

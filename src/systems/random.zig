@@ -134,6 +134,42 @@ pub const Random = struct {
     }
 };
 
+pub const Vec2 = struct { x: f32, y: f32 };
+
+pub fn poissonSample2D(
+    allocator: std.mem.Allocator,
+    n: usize,
+    initial_x: f32,
+    initial_y: f32,
+    width: f32,
+    height: f32,
+) !std.ArrayList(Vec2) {
+    var results = try std.ArrayList(Vec2).initCapacity(
+        allocator,
+        n,
+    );
+    const n_f: f32 = @floatFromInt(n);
+    const spacing_x = (width - initial_x);
+    const spacing_y = (height - initial_y) / n_f;
+    var last_x: f32 = initial_x;
+    var last_y: f32 = initial_y;
+    for (0..n) |_| {
+        var max_x = last_x + spacing_x;
+        if (max_x > width) {
+            last_x = initial_x;
+            max_x = initial_x + spacing_x;
+            last_y += spacing_y;
+        }
+        const max_y = last_y + spacing_y;
+
+        const x = Random.floatInRange(last_x, max_x);
+        const y = Random.floatInRange(last_y, max_y);
+        last_x = x + spacing_x;
+        results.appendAssumeCapacity(.{ .x = x, .y = y });
+    }
+    return results;
+}
+
 test "binary search" {
     var arr = [_]f32{ 0.1, 0.25, 0.32, 0.32, 0.7, 0.74, 0.8, 0.94, 1.0 };
 
